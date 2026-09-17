@@ -83,3 +83,29 @@ risk surface of a capability is fixed and reviewable *before* it is ever allowed
 unattended — replay can only ever execute steps that were recorded and approved earlier.
 That is a stronger guarantee than any runtime heuristic, because it does not depend on
 correctly classifying a novel action under time pressure.
+
+## D7 — Measured against the real target app, not assumed
+
+Probed the accessibility tree against the stand-in app before writing the resolver.
+Three findings, all of which the schema already anticipated — recording them because
+they are the empirical justification for D2 and D4, not just an argument:
+
+1. **The top-level AX tree stops at the iframe boundary.** `Accessibility.getFullAXTree`
+   on the page returns 10 nodes: the shell chrome and nothing else. The working
+   content is invisible from the top frame.
+
+2. **Frame ids must come from `Page.getFrameTree`.** Playwright's internal frame handle
+   is not a CDP frame id. Passing it silently returns the *top* frame's tree again
+   rather than erroring — a quiet wrong answer, which is the failure mode this whole
+   project is about. With real ids, the inner frame yields 34 nodes.
+
+3. **The login fields have no accessible name at all.** The inner frame exposes two
+   nodes of role `textbox` with empty names, while "User ID:" and "Password:" exist
+   as separate `LayoutTableCell` nodes beside them. Role+name targeting *cannot*
+   address these controls.
+
+Finding 3 is the one that matters. It is the exact legacy pathology the brief describes,
+reproduced without contrivance — it falls out of ordinary table markup with no
+`<label for>`. It means `label_proximity` is not a defensive extra in the locator
+ranking, it is the only strategy that can target the most important controls on the
+page. A system that only did role+name would be unable to log in.
