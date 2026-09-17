@@ -1,0 +1,9 @@
+node_modules/
+.env
+.env.*
+!.env.example
+evidence/**/*.png
+evidence/**/*.jpeg
+*.log
+dist/
+.playwright/
