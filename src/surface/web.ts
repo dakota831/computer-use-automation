@@ -19,6 +19,7 @@ import {
   type SurfaceNode,
 } from "./types.js";
 import { resolveTarget } from "./resolve.js";
+import type { RemoteControllable } from "./types.js";
 
 /**
  * Web surface adapter, built on CDP rather than the DOM.
@@ -70,7 +71,7 @@ export type LaunchOptions = {
   viewport?: { width: number; height: number };
 };
 
-export class WebSurface implements Surface {
+export class WebSurface implements Surface, RemoteControllable {
   private internals = new Map<string, NodeInternals>();
   private lastObservation: Observation | null = null;
   private refSeq = 0;
@@ -548,6 +549,87 @@ export class WebSurface implements Surface {
       });
     }
     return Buffer.from(data, "base64");
+  }
+
+  // ------------------------------------------------- remote control (handoff)
+
+  private screencasting = false;
+
+  /**
+   * Stream the live page to an operator.
+   *
+   * Every frame must be acknowledged or Chromium stops sending them, which
+   * presents as a screencast that shows one frame and then freezes.
+   */
+  async startScreencast(
+    onFrame: (frame: {
+      dataBase64: string;
+      width: number;
+      height: number;
+    }) => void,
+  ): Promise<void> {
+    if (this.screencasting) return;
+    this.screencasting = true;
+    this.cdp.on("Page.screencastFrame", async (params: any) => {
+      onFrame({
+        dataBase64: params.data,
+        width: params.metadata?.deviceWidth ?? 0,
+        height: params.metadata?.deviceHeight ?? 0,
+      });
+      try {
+        await this.cdp.send("Page.screencastFrameAck", {
+          sessionId: params.sessionId,
+        });
+      } catch {
+        /* page navigated mid-frame; the next frame supersedes it */
+      }
+    });
+    await this.cdp.send("Page.startScreencast", {
+      format: "jpeg",
+      quality: 60,
+      maxWidth: 1280,
+      maxHeight: 900,
+      everyNthFrame: 1,
+    });
+  }
+
+  async stopScreencast(): Promise<void> {
+    if (!this.screencasting) return;
+    this.screencasting = false;
+    await this.cdp.send("Page.stopScreencast").catch(() => {});
+  }
+
+  /**
+   * Operator input goes through the same CDP Input domain the automation uses.
+   * One code path exercised by both, so the handoff cannot drift from the
+   * behaviour of the thing it is taking over from.
+   */
+  async dispatchMouse(
+    ev: Parameters<RemoteControllable["dispatchMouse"]>[0],
+  ): Promise<void> {
+    await this.cdp.send("Input.dispatchMouseEvent", {
+      type: ev.type,
+      x: ev.x,
+      y: ev.y,
+      button: ev.button ?? (ev.type === "mouseMoved" ? "none" : "left"),
+      clickCount: ev.clickCount ?? (ev.type === "mouseMoved" ? 0 : 1),
+    });
+  }
+
+  async dispatchKey(
+    ev: Parameters<RemoteControllable["dispatchKey"]>[0],
+  ): Promise<void> {
+    await this.cdp.send("Input.dispatchKeyEvent", {
+      type: ev.type,
+      ...(ev.key ? { key: ev.key } : {}),
+      ...(ev.code ? { code: ev.code } : {}),
+      ...(ev.text ? { text: ev.text } : {}),
+      ...(ev.modifiers ? { modifiers: ev.modifiers } : {}),
+    });
+  }
+
+  viewportSize(): { width: number; height: number } {
+    return this.page.viewportSize() ?? { width: 1280, height: 900 };
   }
 
   async close(): Promise<void> {

@@ -72,6 +72,12 @@ export type ReplayOptions = {
   onEscalation?: (ctx: EscalationContext) => Promise<EscalationDecision>;
   /** Re-authentication hook, invoked by the `reauthenticate` recovery action. */
   onReauthenticate?: (surface: Surface) => Promise<void>;
+  /**
+   * Called immediately before every action. The server passes a hook that
+   * awaits the control lease, so automation parks while a human holds the
+   * session rather than racing them for the same page.
+   */
+  beforeAction?: () => Promise<void>;
 };
 
 export async function replay(
@@ -537,6 +543,10 @@ export async function replay(
       step: Step,
       node?: SurfaceNode,
     ): Promise<void> {
+      // Park here if a human currently holds the session. This is the
+      // automation side of the control lease; the server enforces the
+      // operator side before dispatching their input. Both guard one page.
+      if (opts.beforeAction) await opts.beforeAction();
       const a = step.action;
       switch (a.type) {
         case "navigate":

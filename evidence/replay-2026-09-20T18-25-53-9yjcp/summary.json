@@ -1,0 +1,16 @@
+{
+  "runId": "replay-2026-09-20T18-25-53-9yjcp",
+  "mode": "replay",
+  "finishedAt": "2026-09-20T18:25:53.322Z",
+  "events": 3,
+  "redactions": {
+    "field_pii": 1
+  },
+  "status": "failed",
+  "failure": {
+    "code": "INPUT_INVALID",
+    "message": "\"memberId\" does not match required pattern ^\\d{6}$",
+    "evidence": {},
+    "retryable": false
+  }
+}

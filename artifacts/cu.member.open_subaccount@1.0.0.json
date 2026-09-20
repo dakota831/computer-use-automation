@@ -1,0 +1,561 @@
+{
+  "schemaVersion": "1.0.0",
+  "id": "cu.member.open_subaccount",
+  "version": "1.0.0",
+  "title": "Open a sub-account for a member",
+  "description": "Signs in, opens a member record, and creates a new sub-account with the supplied nickname and initial deposit. Creates a record: the final confirmation always requires a human.",
+  "status": "approved",
+  "surface": {
+    "kind": "web",
+    "entryPoint": "http://127.0.0.1:8080/t/firstcu",
+    "appProfile": {
+      "vendorApp": "corelink-teller",
+      "versionRange": "8.x"
+    }
+  },
+  "tenant": "base",
+  "inputs": [
+    {
+      "name": "memberId",
+      "type": "string",
+      "required": true,
+      "description": "Six-digit member number.",
+      "sensitivity": "pii",
+      "pattern": "^\\d{6}$",
+      "example": "100001"
+    },
+    {
+      "name": "nickname",
+      "type": "string",
+      "required": true,
+      "description": "Display name for the new sub-account.",
+      "sensitivity": "internal",
+      "example": "Vacation Fund"
+    },
+    {
+      "name": "initialDeposit",
+      "type": "number",
+      "required": true,
+      "description": "Opening deposit in USD. Must be at least 25.",
+      "sensitivity": "internal",
+      "example": "50"
+    }
+  ],
+  "outputs": [
+    {
+      "name": "reference",
+      "type": "string",
+      "description": "Reference number of the created sub-account.",
+      "sensitivity": "internal",
+      "source": {
+        "describedAs": "the reference number cell",
+        "framePath": [
+          {
+            "name": "mainFrame"
+          }
+        ],
+        "strategies": [
+          {
+            "strategy": {
+              "kind": "label_proximity",
+              "labelText": "Reference",
+              "labelMatch": "normalized",
+              "relation": "right_of",
+              "controlRole": "LayoutTableCell"
+            },
+            "confidence": 0.9,
+            "rationale": "no accessible name; visible label is the cell to the left (\"Reference\")"
+          }
+        ],
+        "ambiguityPolicy": "fail"
+      },
+      "transform": [
+        {
+          "op": "trim"
+        }
+      ]
+    }
+  ],
+  "steps": [
+    {
+      "id": "s1_user",
+      "intent": "Enter the teller user ID",
+      "action": {
+        "type": "type",
+        "target": {
+          "describedAs": "the User ID field",
+          "framePath": [
+            {
+              "name": "mainFrame"
+            }
+          ],
+          "strategies": [
+            {
+              "strategy": {
+                "kind": "label_proximity",
+                "labelText": "User ID",
+                "labelMatch": "normalized",
+                "relation": "right_of",
+                "controlRole": "textbox"
+              },
+              "confidence": 0.9,
+              "rationale": "no accessible name; visible label is the cell to the left (\"User ID\")"
+            }
+          ],
+          "ambiguityPolicy": "fail"
+        },
+        "value": "{{secret:corelink.username}}",
+        "clearFirst": true
+      },
+      "riskClass": "safe",
+      "outcomes": []
+    },
+    {
+      "id": "s2_pass",
+      "intent": "Enter the teller password",
+      "action": {
+        "type": "type",
+        "target": {
+          "describedAs": "the Password field",
+          "framePath": [
+            {
+              "name": "mainFrame"
+            }
+          ],
+          "strategies": [
+            {
+              "strategy": {
+                "kind": "label_proximity",
+                "labelText": "Password",
+                "labelMatch": "normalized",
+                "relation": "right_of",
+                "controlRole": "textbox"
+              },
+              "confidence": 0.9,
+              "rationale": "no accessible name; visible label is the cell to the left (\"Password\")"
+            }
+          ],
+          "ambiguityPolicy": "fail"
+        },
+        "value": "{{secret:corelink.password}}",
+        "clearFirst": true
+      },
+      "riskClass": "safe",
+      "outcomes": []
+    },
+    {
+      "id": "s3_signin",
+      "intent": "Sign in and reach member search",
+      "action": {
+        "type": "click",
+        "target": {
+          "describedAs": "the Sign In button",
+          "framePath": [
+            {
+              "name": "mainFrame"
+            }
+          ],
+          "strategies": [
+            {
+              "strategy": {
+                "kind": "role_name",
+                "role": "button",
+                "name": "Sign In",
+                "nameMatch": "alias",
+                "aliases": []
+              },
+              "confidence": 0.95,
+              "rationale": "button has a real accessible name; aliases cover tenant wording"
+            }
+          ],
+          "ambiguityPolicy": "fail"
+        }
+      },
+      "riskClass": "safe",
+      "checkpoint": {
+        "all": [
+          {
+            "kind": "text_present",
+            "text": "Member Search",
+            "match": "normalized"
+          }
+        ],
+        "timeoutMs": 10000,
+        "describedAs": "the member search screen is showing"
+      },
+      "outcomes": [
+        {
+          "code": "ACKNOWLEDGEMENT_REQUIRED",
+          "describedAs": "an acceptable-use acknowledgement is blocking the session",
+          "detector": {
+            "kind": "text_present",
+            "text": "Acceptable Use Acknowledgement",
+            "match": "normalized"
+          },
+          "disposition": "recover",
+          "recovery": {
+            "do": "dismiss",
+            "target": {
+              "describedAs": "the acknowledgement button",
+              "framePath": [
+                {
+                  "name": "mainFrame"
+                }
+              ],
+              "strategies": [
+                {
+                  "strategy": {
+                    "kind": "role_name",
+                    "role": "button",
+                    "name": "I Acknowledge",
+                    "nameMatch": "alias",
+                    "aliases": []
+                  },
+                  "confidence": 0.95,
+                  "rationale": "button has a real accessible name; aliases cover tenant wording"
+                }
+              ],
+              "ambiguityPolicy": "fail"
+            },
+            "describedAs": "accept the acceptable-use notice"
+          },
+          "maxAttempts": 2
+        }
+      ]
+    },
+    {
+      "id": "s4_member_id",
+      "intent": "Type the member ID into the search field",
+      "action": {
+        "type": "type",
+        "target": {
+          "describedAs": "the Member ID field",
+          "framePath": [
+            {
+              "name": "mainFrame"
+            }
+          ],
+          "strategies": [
+            {
+              "strategy": {
+                "kind": "label_proximity",
+                "labelText": "Member ID",
+                "labelMatch": "normalized",
+                "relation": "right_of",
+                "controlRole": "textbox"
+              },
+              "confidence": 0.9,
+              "rationale": "no accessible name; visible label is the cell to the left (\"Member ID\")"
+            },
+            {
+              "strategy": {
+                "kind": "label_proximity",
+                "labelText": "Member Number",
+                "labelMatch": "normalized",
+                "relation": "right_of",
+                "controlRole": "textbox"
+              },
+              "confidence": 0.7,
+              "rationale": "tenant variant label for \"Member ID\""
+            }
+          ],
+          "ambiguityPolicy": "fail"
+        },
+        "value": "{{memberId}}",
+        "clearFirst": true
+      },
+      "riskClass": "safe",
+      "outcomes": []
+    },
+    {
+      "id": "s5_search",
+      "intent": "Open the member record",
+      "action": {
+        "type": "click",
+        "target": {
+          "describedAs": "the Search button",
+          "framePath": [
+            {
+              "name": "mainFrame"
+            }
+          ],
+          "strategies": [
+            {
+              "strategy": {
+                "kind": "role_name",
+                "role": "button",
+                "name": "Search",
+                "nameMatch": "alias",
+                "aliases": [
+                  "Find"
+                ]
+              },
+              "confidence": 0.95,
+              "rationale": "button has a real accessible name; aliases cover tenant wording"
+            }
+          ],
+          "ambiguityPolicy": "fail"
+        }
+      },
+      "riskClass": "safe",
+      "checkpoint": {
+        "all": [
+          {
+            "kind": "text_present",
+            "text": "Member Detail",
+            "match": "normalized"
+          }
+        ],
+        "timeoutMs": 12000,
+        "describedAs": "the member detail record is showing"
+      },
+      "outcomes": [
+        {
+          "code": "MEMBER_NOT_FOUND",
+          "describedAs": "no member exists with the supplied ID",
+          "detector": {
+            "kind": "text_present",
+            "text": "No member found matching the ID supplied",
+            "match": "normalized"
+          },
+          "disposition": "business_outcome",
+          "maxAttempts": 1
+        },
+        {
+          "code": "PERMISSION_DENIED",
+          "describedAs": "this teller may not view the member record",
+          "detector": {
+            "kind": "text_present",
+            "text": "do not have permission to view this member record",
+            "match": "normalized"
+          },
+          "disposition": "business_outcome",
+          "maxAttempts": 1
+        }
+      ]
+    },
+    {
+      "id": "s6_open_form",
+      "intent": "Open the new sub-account form",
+      "action": {
+        "type": "click",
+        "target": {
+          "describedAs": "the Open Sub-Account link",
+          "framePath": [
+            {
+              "name": "mainFrame"
+            }
+          ],
+          "strategies": [
+            {
+              "strategy": {
+                "kind": "role_name",
+                "role": "link",
+                "name": "Open Sub-Account",
+                "nameMatch": "alias",
+                "aliases": [
+                  "Add Sub-Account"
+                ]
+              },
+              "confidence": 0.95,
+              "rationale": "link has a real accessible name; aliases cover tenant wording"
+            }
+          ],
+          "ambiguityPolicy": "fail"
+        }
+      },
+      "riskClass": "safe",
+      "checkpoint": {
+        "all": [
+          {
+            "kind": "text_present",
+            "text": "Account Nickname",
+            "match": "normalized"
+          }
+        ],
+        "timeoutMs": 10000,
+        "describedAs": "the sub-account form is showing"
+      },
+      "outcomes": []
+    },
+    {
+      "id": "s7_nickname",
+      "intent": "Enter the sub-account nickname",
+      "action": {
+        "type": "type",
+        "target": {
+          "describedAs": "the Account Nickname field",
+          "framePath": [
+            {
+              "name": "mainFrame"
+            }
+          ],
+          "strategies": [
+            {
+              "strategy": {
+                "kind": "label_proximity",
+                "labelText": "Account Nickname",
+                "labelMatch": "normalized",
+                "relation": "right_of",
+                "controlRole": "textbox"
+              },
+              "confidence": 0.9,
+              "rationale": "no accessible name; visible label is the cell to the left (\"Account Nickname\")"
+            }
+          ],
+          "ambiguityPolicy": "fail"
+        },
+        "value": "{{nickname}}",
+        "clearFirst": true
+      },
+      "riskClass": "safe",
+      "outcomes": []
+    },
+    {
+      "id": "s8_deposit",
+      "intent": "Enter the initial deposit",
+      "action": {
+        "type": "type",
+        "target": {
+          "describedAs": "the Initial Deposit field",
+          "framePath": [
+            {
+              "name": "mainFrame"
+            }
+          ],
+          "strategies": [
+            {
+              "strategy": {
+                "kind": "label_proximity",
+                "labelText": "Initial Deposit",
+                "labelMatch": "normalized",
+                "relation": "right_of",
+                "controlRole": "textbox"
+              },
+              "confidence": 0.9,
+              "rationale": "no accessible name; visible label is the cell to the left (\"Initial Deposit\")"
+            }
+          ],
+          "ambiguityPolicy": "fail"
+        },
+        "value": "{{initialDeposit}}",
+        "clearFirst": true
+      },
+      "riskClass": "safe",
+      "outcomes": []
+    },
+    {
+      "id": "s9_confirm",
+      "intent": "Submit the form and create the sub-account",
+      "action": {
+        "type": "click",
+        "target": {
+          "describedAs": "the Confirm button",
+          "framePath": [
+            {
+              "name": "mainFrame"
+            }
+          ],
+          "strategies": [
+            {
+              "strategy": {
+                "kind": "role_name",
+                "role": "button",
+                "name": "Confirm",
+                "nameMatch": "alias",
+                "aliases": [
+                  "Submit"
+                ]
+              },
+              "confidence": 0.95,
+              "rationale": "button has a real accessible name; aliases cover tenant wording"
+            }
+          ],
+          "ambiguityPolicy": "fail"
+        }
+      },
+      "riskClass": "irreversible",
+      "checkpoint": {
+        "all": [
+          {
+            "kind": "text_present",
+            "text": "Sub-Account Created",
+            "match": "normalized"
+          }
+        ],
+        "timeoutMs": 12000,
+        "describedAs": "the sub-account confirmation screen is showing"
+      },
+      "outcomes": [
+        {
+          "code": "DEPOSIT_TOO_SMALL",
+          "describedAs": "the opening deposit is below the institution minimum",
+          "detector": {
+            "kind": "text_present",
+            "text": "Initial deposit must be at least",
+            "match": "normalized"
+          },
+          "disposition": "business_outcome",
+          "maxAttempts": 1
+        }
+      ]
+    }
+  ],
+  "successCondition": {
+    "all": [
+      {
+        "kind": "text_present",
+        "text": "Sub-Account Created",
+        "match": "normalized"
+      },
+      {
+        "kind": "url_matches",
+        "pattern": "/frame/confirm"
+      }
+    ],
+    "timeoutMs": 10000,
+    "describedAs": "the sub-account was created and a reference number is shown"
+  },
+  "outcomes": [
+    {
+      "code": "SESSION_EXPIRED",
+      "describedAs": "the teller session timed out",
+      "detector": {
+        "kind": "text_present",
+        "text": "Your session has timed out",
+        "match": "normalized"
+      },
+      "disposition": "recover",
+      "recovery": {
+        "do": "reauthenticate"
+      },
+      "maxAttempts": 2
+    }
+  ],
+  "policy": {
+    "allowedOrigins": [
+      "http://127.0.0.1:8080/t/firstcu/*",
+      "http://127.0.0.1:8080/t/summit/*"
+    ],
+    "allowedActions": [
+      "navigate",
+      "click",
+      "type",
+      "select",
+      "press",
+      "read",
+      "wait_for"
+    ],
+    "confirmAtOrAbove": "irreversible"
+  },
+  "provenance": {
+    "discoveredBy": {
+      "provider": "hand-authored",
+      "model": "none"
+    },
+    "runId": "baseline",
+    "createdAt": "2026-09-20T18:26:12.968Z",
+    "transcriptSha256": "",
+    "humanAssisted": true
+  }
+}

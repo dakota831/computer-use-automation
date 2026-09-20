@@ -1,0 +1,18 @@
+[Unit]
+Description=Project Dex - capability API and operator console backend
+After=network.target dex-target.service
+
+[Service]
+Type=simple
+User=dexdash
+WorkingDirectory=/home/dexdash/projects/dex
+EnvironmentFile=/home/dexdash/projects/dex/.env
+Environment=DEX_OPERATOR_PORT=4000
+ExecStart=/home/dexdash/projects/dex/node_modules/.bin/tsx src/server/index.ts
+Restart=on-failure
+RestartSec=5s
+StandardOutput=append:/home/dexdash/projects/dex/server.log
+StandardError=append:/home/dexdash/projects/dex/server.log
+
+[Install]
+WantedBy=multi-user.target

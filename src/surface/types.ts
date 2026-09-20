@@ -149,6 +149,48 @@ export interface Surface {
  * observation so declared outputs can be extracted, and so text assertions can
  * be scoped to a region rather than matched against the whole page.
  */
+/**
+ * A surface a human can watch and drive remotely.
+ *
+ * Deliberately separate from `Surface`. Perception and action are things every
+ * surface must do; being remotely viewable is a *capability* that some surfaces
+ * have and others do not, and the handoff design has to degrade honestly for
+ * one that does not rather than pretend otherwise.
+ */
+export interface RemoteControllable {
+  startScreencast(
+    onFrame: (frame: {
+      dataBase64: string;
+      width: number;
+      height: number;
+    }) => void,
+  ): Promise<void>;
+  stopScreencast(): Promise<void>;
+  dispatchMouse(ev: {
+    type: "mousePressed" | "mouseReleased" | "mouseMoved";
+    x: number;
+    y: number;
+    button?: "left" | "right" | "middle" | "none";
+    clickCount?: number;
+  }): Promise<void>;
+  dispatchKey(ev: {
+    type: "keyDown" | "keyUp" | "char";
+    key?: string;
+    code?: string;
+    text?: string;
+    modifiers?: number;
+  }): Promise<void>;
+  viewportSize(): { width: number; height: number };
+}
+
+export function isRemoteControllable(
+  s: Surface,
+): s is Surface & RemoteControllable {
+  return (
+    typeof (s as Partial<RemoteControllable>).startScreencast === "function"
+  );
+}
+
 export const READABLE_ROLES = new Set([
   "cell",
   "LayoutTableCell",

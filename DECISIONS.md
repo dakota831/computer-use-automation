@@ -270,3 +270,46 @@ wire format was noisy. Before normalising this the agent burned all 22 steps ret
 Normalisation lives in `tools.ts` at the provider boundary, not in the loop, so swapping
 models does not move the workaround around. This is the concrete argument for D3's
 provider-agnostic client: the abstraction earned its keep within an hour of first use.
+
+## D18 — The control lease, and why automation parks rather than stops
+
+Exactly one party may act on a session at a time, and the lease is the single
+authoritative answer to "who". Automation holds it by default. When a human takes over,
+the run does not terminate — it *parks*, awaiting the lease. Terminating would lose the
+session, which defeats the requirement: the human has to operate the same live session
+and hand it back so the run continues from where it stopped.
+
+Mechanically the pause is just an un-awaited promise. `raise()` returns one, the executor
+awaits it as the result of its escalation hook, and a human resolving the intervention
+resolves it. No polling loop, no separate state machine, and the browser context, its
+cookies and its position in the flow are untouched throughout.
+
+Both sides are gated, and both gates are server-side:
+
+  - automation calls `beforeAction` before every action, which awaits the lease
+  - operator input is checked with `assertHolder("operator")` immediately before it is
+    dispatched into the page
+
+The console also disables its own controls, but that is a courtesy. Demonstrated
+directly: operator input sent *before* taking control is refused by the server with
+`control is held by "automation"`. A client that ignores the UI still cannot act.
+
+Operator input goes through the same CDP Input domain the automation uses, so the
+handoff cannot drift from the behaviour of the thing it is taking over from — one code
+path, exercised by both.
+
+## D19 — Approving a risky step is not the same as doing it
+
+Two distinct resolutions, because they mean different things to the audit trail:
+
+  `resume`         the human authorised it; automation performs the step
+  `step_completed` the human performed it themselves; automation skips it
+
+The first is what the irreversible-step gate is for. Replay reaches `s9_confirm`, refuses
+to create an account on its own authority even though the capability is approved and
+every prior step ran unattended, and asks. On approval it performs the click itself. The
+human decided; the machine acted. That distinction is exactly what an auditor needs, and
+collapsing the two would lose it.
+
+Recorded human actions log key *names*, never typed characters — an operator entering a
+member ID or a credential must not have it captured in an audit log.
