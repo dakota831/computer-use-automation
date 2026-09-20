@@ -213,9 +213,30 @@ institutions running the same vendor product:
   screen after login; the capability declares it as a recoverable condition, so the tenant
   that shows it recovers and the tenant that does not never triggers the rule
 
-The target app ships both skins (`/t/firstcu`, `/t/summit`) differing in branding, field
-labels, button text, column order and that extra screen — the differences that actually
-occur in the field, not cosmetic noise.
+`tenantOverrides` carries what a base recording genuinely cannot know — where an
+institution's install lives, and any label it has renamed since. `specializeForTenant()`
+returns a new capability rather than mutating, so one loaded artifact serves every tenant
+in a process, and aliases are *appended* to the ranked strategies rather than replacing
+them. Deliberately narrow: an override changes the entry point and adds aliases, never the
+steps, outcomes or policy. A tenant needing different behaviour is a fork worth reviewing.
+
+**Demonstrated, not argued.** `cu.member.read_savings_balance`, recorded against First
+Community, replayed against Summit: different host, "Member Number" for "Member ID",
+"Find" for "Search", "Regular Savings" for "Savings Balance", swapped row order, and an
+extra acceptable-use screen after sign-in. Result `success`, same outputs; `999999` still
+returns `MEMBER_NOT_FOUND`. Committed as `evidence/08-replay-cross-tenant-summit`.
+
+Its log is the point:
+
+```
+entryPoint: .../t/summit   tenant: summit
+outcome_detected: ACKNOWLEDGEMENT_REQUIRED -> recover
+resolution: "the Member ID field" -> strategy #1 (label_proximity, conf 0.7)
+```
+
+Nothing failed, but the run records that this tenant needed a fallback to resolve a
+control. That is the drift signal in practice: a tenant whose runs start leaning on
+fallbacks is drifting, visible well before anything breaks.
 
 Drift detection falls out of the evidence rather than needing new machinery: every
 resolution logs which strategy index and confidence it used. A tenant whose runs start
@@ -223,7 +244,7 @@ resolving via fallbacks is drifting, and that is visible before anything fails. 
 specialisation path is `tenant: "<id>"` with a version bump, so a tenant override is a
 reviewable artifact rather than a code branch.
 
-**Not built:** an actual desktop adapter, and automated cross-tenant promotion. The
+**Not built:** an actual desktop adapter, and automated cross-tenant promotion (running every capability against every tenant on a schedule). The
 abstractions do not preclude either.
 
 ---

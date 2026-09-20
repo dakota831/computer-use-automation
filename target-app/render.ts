@@ -96,7 +96,7 @@ export function shell(t: Tenant, o: ShellOpts): string {
   const now = new Date();
   const menu = MENU.map(
     (m) =>
-      `<a href="#" onclick="return false" ${m.id === (o.active ?? "members") ? 'class="on"' : ""}>${esc(m.label)}</a>`,
+      `<a href="/t/${t.id}/${m.id}" ${m.id === (o.active ?? "members") ? 'class="on"' : ""}>${esc(m.label)}</a>`,
   ).join("");
 
   const crumbs = (o.crumbs ?? [o.title])
@@ -124,7 +124,7 @@ export function shell(t: Tenant, o: ShellOpts): string {
   </div>
   <div class="whoami">
     <div>Teller: <b>${esc(o.teller ?? "Not signed in")}</b><span class="sep">|</span>Branch <b>004 &mdash; Main</b></div>
-    <div>${now.toDateString()}<span class="sep">|</span>CoreLink Teller ${esc(t.productVersion)}</div>
+    <div>${now.toDateString()}<span class="sep">|</span>CoreLink Teller ${esc(t.productVersion)}${o.teller ? `<span class="sep">|</span><a href="/t/${t.id}/signout" style="color:#fff;text-decoration:underline">Sign Out</a>` : ""}</div>
   </div>
 </div>
 
@@ -143,19 +143,30 @@ export function shell(t: Tenant, o: ShellOpts): string {
   <span><span class="dot"></span> Connected</span>
   <span>App server: <b>${esc(t.appServer)}</b></span>
   <span>Region: US-EAST</span>
-  <span class="right">Environment: <b>DEMONSTRATION</b> &mdash; all data is synthetic</span>
+  <span>Session: <b id="sessclk">00:00:00</b></span>\n  <span class="right">Environment: <b>DEMONSTRATION</b> &mdash; all data is synthetic</span>
 </div>
 
 <div class="foot">
   CoreLink Teller ${esc(t.productVersion)} &mdash; licensed to ${esc(t.institution)}<br>
   &copy; ${now.getFullYear()} ${esc(VENDOR_NAME)}. All rights reserved.
-  <a href="#" onclick="return false">Help</a>&middot;
-  <a href="#" onclick="return false">Contact Support</a>&middot;
-  <a href="#" onclick="return false">Privacy</a>&middot;
-  <a href="#" onclick="return false">Terms of Use</a><br>
+  <a href="/t/${t.id}/help">Help</a>&middot;
+  <a href="/t/${t.id}/help#support">Contact Support</a>&middot;
+  <a href="/t/${t.id}/help#privacy">Privacy</a>&middot;
+  <a href="/t/${t.id}/help#terms">Terms of Use</a><br>
   <span style="opacity:.75">This is a synthetic demonstration system. It represents no real institution, member or account.</span>
 </div>
 
+<script>
+(function(){
+  var el = document.getElementById("sessclk"); if (!el) return;
+  var t0 = Date.now();
+  setInterval(function(){
+    var s = Math.floor((Date.now()-t0)/1000);
+    el.textContent = [Math.floor(s/3600), Math.floor(s/60)%60, s%60]
+      .map(function(n){ return String(n).padStart(2,"0"); }).join(":");
+  }, 1000);
+})();
+</script>
 </body></html>`;
 }
 

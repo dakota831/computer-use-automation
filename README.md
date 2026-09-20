@@ -30,7 +30,9 @@ browser session; an unauthenticated remote-control endpoint on a public hostname
 hole, not a theoretical one. The teller app is open — every byte of its data is fabricated
 and it is meant to be clicked around.
 
-Two tenants of the same vendor product: `/t/firstcu` and `/t/summit`.
+Two tenants of the same vendor product: `/t/firstcu` and `/t/summit`. Both are complete
+consoles — Members, Accounts, Transactions, Reports and Administration all work, with a
+session clock, recently-viewed members, filters and sign-out.
 
 ---
 
@@ -86,6 +88,18 @@ That last one invokes a capability whose final step creates an account. Replay r
 perform it unattended, escalates, a named operator attaches to the **live session** over a
 CDP screencast, is refused input until taking the control lease, takes it, approves, and
 the run resumes and completes.
+
+```bash
+# 5. cross-tenant reuse: the SAME artifact on a second institution
+npx tsx src/cli/index.ts replay cu.member.read_savings_balance \
+  --input memberId=100001 --tenant summit
+#   {"status":"success","outputs":{"savingsBalance":8214.55,...}}
+```
+
+Recorded against First Community; replayed against Summit, which uses a different host,
+calls the field "Member Number", labels the button "Find", and interposes an
+acceptable-use screen after sign-in. The run log shows the acknowledgement being recovered
+and the member field resolving via its *fallback* strategy — drift visible before failure.
 
 ```bash
 npm run evidence     # regenerate /evidence/ from scratch

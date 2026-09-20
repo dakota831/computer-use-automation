@@ -105,18 +105,32 @@ export async function discover(opts: DiscoverOptions): Promise<DiscoverResult> {
   });
 
   /**
-   * Observe, and give the surface a moment if nothing actionable is there yet.
+   * Observe, and wait for the *content frame* to have something in it.
    *
-   * Frame content can lag the parent's load event. Showing the model an empty
-   * screen makes it give up on a page that is about to be fine, so a short
-   * bounded retry here is worth far more than the milliseconds it costs.
+   * The naive version waited for "any actionable node", which was fine until
+   * the application grew a real navigation bar: the top-frame menu links are
+   * always actionable, so the check passed instantly and the model was shown a
+   * page whose working area had not loaded yet. It then reasonably concluded
+   * there was no login form and gave up.
+   *
+   * So when the page has child frames, wait for actionable nodes *inside* one.
+   * Chrome is not content, and an agent shown only chrome will either stall or
+   * start clicking the menu.
    */
   const observeSettled = async (
-    attempts = 4,
+    attempts = 6,
     delayMs = 400,
   ): Promise<Observation> => {
+    const ready = (o: Observation) => {
+      const actionable = o.nodes.filter((n) => !n.readOnly);
+      if (!actionable.length) return false;
+      const hasChildFrame = o.frames.some((f) => f.depth > 0);
+      return hasChildFrame
+        ? actionable.some((n) => n.framePath.length > 0)
+        : true;
+    };
     let obs = await surface.observe();
-    for (let i = 1; i < attempts && !obs.nodes.some((n) => !n.readOnly); i++) {
+    for (let i = 1; i < attempts && !ready(obs); i++) {
       await new Promise((r) => setTimeout(r, delayMs));
       obs = await surface.observe();
     }

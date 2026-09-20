@@ -172,6 +172,8 @@ Each turn you get the current controls and visible text. Controls are identified
 
 Many controls in this application have no accessible name of their own; their label is the text beside them. Those are marked "[label from right_of text]" and are addressed the same way.
 
+This application has a navigation bar and other surrounding chrome. The work happens in the CONTENT FRAME named in the header above - controls listed with a frame are the ones that advance your task. Do not use the top-level navigation unless the goal actually calls for changing section; clicking it will take you away from the screen you are working on.
+
 VALUES YOU MAY USE
 Run parameters (use the template, not the literal value): ${
     Object.keys(args.parameters).length

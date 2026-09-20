@@ -3,6 +3,14 @@ import type { Request, Response } from "express";
 import { TENANTS, DEFAULT_TENANT, type Tenant } from "./tenants.js";
 import { MEMBERS, CREDENTIALS, type Member } from "./data.js";
 import {
+  accountsPage,
+  transactionsPage,
+  reportsPage,
+  adminPage,
+  helpPage,
+  recentPanel,
+} from "./sections.js";
+import {
   shell,
   frameDoc,
   fieldRow,
@@ -34,6 +42,8 @@ type Session = {
   user: string;
   createdAt: number;
   ackDone: boolean;
+  /** Recently viewed members, newest first. A small operator convenience. */
+  recent: string[];
 };
 const sessions = new Map<string, Session>();
 let subAccountSeq = 4400;
@@ -163,6 +173,7 @@ app.post("/t/:tenant/login", (req, res) => {
     user: u,
     createdAt: Date.now(),
     ackDone: false,
+    recent: [],
   });
   res.setHeader("Set-Cookie", `sid=${sid}; Path=/; HttpOnly; SameSite=Lax`);
   // Back to the shell, which now renders signed in. Summit interposes an
@@ -200,7 +211,8 @@ app.post("/t/:tenant/ack", (req, res) => {
 
 app.get("/t/:tenant/frame/search", (req, res) => {
   const t = tenantOf(req);
-  if (!sessionOf(req)) return expired(t, res);
+  const sess = sessionOf(req);
+  if (!sess) return expired(t, res);
   const notFound = req.query.nf
     ? errorBox("No member found matching the ID supplied.")
     : "";
@@ -216,9 +228,10 @@ app.get("/t/:tenant/frame/search", (req, res) => {
           ${fieldRow(t.labels.memberId, `${t.controlPrefix}txtMemberId`)}
           <tr><td></td><td><input type="submit" name="${t.controlPrefix}btnSearch" value="${esc(t.labels.search)}"></td></tr>
         </table>
-      </form>`,
+      </form>
+      <p class="hint">Enter a six digit ${esc(t.labels.memberId.toLowerCase())} to open a record.</p>`,
       ),
-    ),
+    ) + recentPanel(t, sess.recent),
   );
 });
 
@@ -250,8 +263,12 @@ function detailRows(t: Tenant, m: Member): string {
 
 app.get("/t/:tenant/frame/member", async (req, res) => {
   const t = tenantOf(req);
-  if (!sessionOf(req)) return expired(t, res);
+  const sess = sessionOf(req);
+  if (!sess) return expired(t, res);
   const id = String(req.query.id ?? "");
+  if (MEMBERS[id]) {
+    sess.recent = [id, ...sess.recent.filter((r) => r !== id)].slice(0, 8);
+  }
   const m = MEMBERS[id];
   if (!m) {
     return res.send(
@@ -400,18 +417,202 @@ app.get("/t/:tenant/frame/confirm", (req, res) => {
   );
 });
 
+// ------------------------------------------------------- application sections
+//
+// Each nav item is a real destination. The shell is rendered at the top level
+// and frames the section's content, which is how this class of application
+// actually navigates.
+
+type SectionDef = { id: string; title: string; crumbs: string[] };
+const SECTIONS: Record<string, SectionDef> = {
+  members: {
+    id: "members",
+    title: "Member Lookup",
+    crumbs: ["Members", "Lookup"],
+  },
+  accounts: {
+    id: "accounts",
+    title: "Account Register",
+    crumbs: ["Accounts", "Register"],
+  },
+  transactions: {
+    id: "transactions",
+    title: "Transaction Register",
+    crumbs: ["Transactions", "Register"],
+  },
+  reports: {
+    id: "reports",
+    title: "Reports",
+    crumbs: ["Reports", "Daily Totals"],
+  },
+  admin: {
+    id: "admin",
+    title: "Administration",
+    crumbs: ["Administration", "Workstation"],
+  },
+  help: { id: "help", title: "Help", crumbs: ["Help"] },
+};
+
+for (const key of Object.keys(SECTIONS)) {
+  app.get(`/t/:tenant/${key}`, (req, res) => {
+    const t = tenantOf(req);
+    const sess = sessionOf(req);
+    if (!sess) return res.redirect(base(t));
+    const def = SECTIONS[key]!;
+    const qs = new URL(req.originalUrl, "http://x").searchParams.toString();
+    res.send(
+      shell(t, {
+        innerPath: `${base(t)}/frame/${key === "members" ? "search" : key}${qs ? `?${qs}` : ""}`,
+        title: def.title,
+        active: key === "help" ? "members" : key,
+        crumbs: def.crumbs,
+        teller: sess.user,
+      }),
+    );
+  });
+}
+
+/** Member id may arrive under either tenant's generated control name. */
+const filterMember = (req: Request): string | undefined => {
+  const q = req.query as Record<string, string | undefined>;
+  const hit = Object.entries(q).find(([k]) =>
+    /txt(FilterMember|TxnMember)$/.test(k),
+  );
+  const v = (hit?.[1] ?? "").trim();
+  return v || undefined;
+};
+
+app.get("/t/:tenant/frame/accounts", (req, res) => {
+  const t = tenantOf(req);
+  if (!sessionOf(req)) return expired(t, res);
+  res.send(accountsPage(t, filterMember(req)));
+});
+
+app.get("/t/:tenant/frame/transactions", (req, res) => {
+  const t = tenantOf(req);
+  if (!sessionOf(req)) return expired(t, res);
+  res.send(transactionsPage(t, filterMember(req)));
+});
+
+app.get("/t/:tenant/frame/reports", (req, res) => {
+  const t = tenantOf(req);
+  if (!sessionOf(req)) return expired(t, res);
+  res.send(reportsPage(t));
+});
+
+app.get("/t/:tenant/frame/admin", (req, res) => {
+  const t = tenantOf(req);
+  const sess = sessionOf(req);
+  if (!sess) return expired(t, res);
+  res.send(adminPage(t, sess.user));
+});
+
+app.get("/t/:tenant/frame/help", (req, res) => {
+  const t = tenantOf(req);
+  res.send(helpPage(t));
+});
+
+app.get("/t/:tenant/signout", (req, res) => {
+  const t = tenantOf(req);
+  const sid = readCookie(req, "sid");
+  if (sid) sessions.delete(sid);
+  res.setHeader("Set-Cookie", "sid=; Path=/; Max-Age=0");
+  res.redirect(base(t));
+});
+
+/**
+ * Institution selector.
+ *
+ * The vendor-side landing page an operator would reach before choosing their
+ * institution. It also makes the multi-tenant story legible at a glance: two
+ * installs of one product, different branding, different versions.
+ */
 app.get("/", (_req, res) => {
-  const links = Object.values(TENANTS)
+  const cards = Object.values(TENANTS)
     .map(
-      (t) =>
-        `<li><a href="/t/${t.id}">${esc(t.institution)}</a> (CoreLink ${esc(t.productVersion)})</li>`,
+      (t) => `
+      <a class="card" href="/t/${t.id}" style="border-top:4px solid ${t.theme.accent}">
+        <div class="cardhd" style="background:linear-gradient(to bottom,${t.theme.barFrom},${t.theme.barTo})">
+          <span class="crest">${crestSvg(t)}</span>
+          <span>
+            <b>${esc(t.institution)}</b>
+            <small>${esc(t.charter)}</small>
+          </span>
+        </div>
+        <table class="meta">
+          <tr><td>Product</td><td>CoreLink Teller ${esc(t.productVersion)}</td></tr>
+          <tr><td>App server</td><td>${esc(t.appServer)}</td></tr>
+          <tr><td>Instance</td><td>/t/${t.id}</td></tr>
+          <tr><td>Sign-in</td><td><b>admin</b> / <b>admin</b></td></tr>
+        </table>
+        <span class="go">Open teller console &rsaquo;</span>
+      </a>`,
     )
     .join("");
-  res.send(`<!doctype html><title>CoreLink Teller (synthetic)</title>
-    <body style="font-family:Verdana;font-size:13px;margin:3rem auto;max-width:40rem">
-    <h2>CoreLink Teller &mdash; synthetic test instances</h2>
-    <p>Two tenants running the same vendor product. All data is fabricated.</p>
-    <ul>${links}</ul></body>`);
+
+  res.send(`<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>CoreLink Financial Systems &mdash; Institution Portal</title>
+<link rel="icon" type="image/svg+xml" href="/t/firstcu/favicon.svg">
+<style>
+ *{box-sizing:border-box}
+ body{margin:0;background:#eef1f6;font-family:"Segoe UI",Tahoma,Verdana,Arial,sans-serif;font-size:13px;color:#1a1a1a}
+ .top{background:linear-gradient(to bottom,#243b57,#14233a);color:#fff;border-bottom:3px solid #c8a24a;padding:14px 18px}
+ .top b{font-family:Georgia,serif;font-size:19px;letter-spacing:.2px}
+ .top small{display:block;opacity:.75;margin-top:2px}
+ .wrap{max-width:900px;margin:0 auto;padding:22px 16px 40px}
+ h1{font-size:17px;margin:0 0 4px}
+ .lede{color:#4a5568;margin:0 0 20px;max-width:60ch;line-height:1.6}
+ .cards{display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(300px,1fr))}
+ .card{display:block;background:#fff;border:1px solid #93a2b8;text-decoration:none;color:inherit;
+   box-shadow:0 1px 3px rgba(20,40,70,.14)}
+ .card:hover{box-shadow:0 3px 10px rgba(20,40,70,.22)}
+ .cardhd{display:flex;gap:10px;align-items:center;color:#fff;padding:10px 12px}
+ .cardhd b{display:block;font-family:Georgia,serif;font-size:15px}
+ .cardhd small{opacity:.8;font-size:10.5px}
+ .crest{width:30px;height:30px;flex:0 0 auto}
+ .meta{width:100%;border-collapse:collapse;font-size:12px}
+ .meta td{padding:5px 12px;border-bottom:1px solid #eef1f6}
+ .meta td:first-child{color:#5a6a85;width:38%}
+ .go{display:block;padding:9px 12px;background:#f5f7fb;border-top:1px solid #e0e6ef;color:#14396b;font-weight:600}
+ .note{margin-top:24px;border-left:4px solid #c8a24a;background:#fffdf5;padding:11px 14px;color:#5a4a20;line-height:1.6}
+ .foot{border-top:1px solid #cdd6e2;margin-top:28px;padding-top:14px;color:#6b7280;font-size:11px;line-height:1.7}
+ .foot a{color:#41506b}
+ @media (max-width:640px){ .top b{font-size:16px} .wrap{padding:16px 12px 32px} }
+</style></head><body>
+
+<div class="top">
+  <b>CoreLink Financial Systems</b>
+  <small>Teller Platform &mdash; Institution Portal</small>
+</div>
+
+<div class="wrap">
+  <h1>Select an institution</h1>
+  <p class="lede">
+    Two institutions running the same CoreLink Teller product, configured, branded and
+    versioned independently &mdash; the arrangement this platform is designed around.
+  </p>
+
+  <div class="cards">${cards}</div>
+
+  <div class="note">
+    <b>Demonstration environment.</b> Every institution, member, account and balance in this
+    system is fabricated. It exists to exercise UI automation against a realistic
+    back-office surface. See
+    <a href="https://dexdash.cloud">dexdash.cloud</a> for what is being demonstrated.
+  </div>
+
+  <div class="foot">
+    &copy; ${new Date().getFullYear()} CoreLink Financial Systems. All rights reserved.<br>
+    <a href="https://dexdash.cloud">Platform overview</a> &middot;
+    <a href="https://console.dexdash.cloud">Operator console</a> &middot;
+    <a href="/t/firstcu/help">Help</a>
+  </div>
+</div>
+
+</body></html>`);
 });
 
 app.listen(PORT, "127.0.0.1", () => {

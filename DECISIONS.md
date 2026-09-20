@@ -422,3 +422,39 @@ That last line is the drift signal from REPORT §4 working in practice. Nothing 
 the log records that this tenant needed a fallback strategy to resolve a control. A tenant
 whose runs start leaning on fallbacks is drifting, and it is visible well before anything
 breaks.
+
+## D26 — Making the nav real broke the agent, and that was worth knowing
+
+Turning the menu bar into working links immediately broke discovery. The agent's first
+move was to click "Members", which navigated away from the sign-in screen, after which it
+correctly reported that no login form was present and stopped.
+
+Two separate causes, both worth fixing rather than papering over.
+
+**A latent bug the chrome exposed.** `observeSettled` waited for "any actionable node"
+before showing the model a screen. That was adequate while the only actionable things
+were inside the content frame. With a real navigation bar the top-frame links are
+*always* actionable, so the check passed instantly and the model was handed a page whose
+working area had not loaded. It then reasoned correctly from a screen that was simply
+wrong. Now, when child frames exist, the settle waits for actionable nodes *inside* one —
+chrome is not content.
+
+**A prompt gap.** The agent was never told the difference between application chrome and
+the working area. Real operators make that distinction without thinking; a model has to
+be told which controls advance the task and that the menu will take it somewhere else.
+
+Worth noting the failure mode: the agent did not crash or click wildly. It reported
+`blocked` with an accurate description of what it saw. The guardrail worked even while the
+perception feeding it was wrong, which is the behaviour I would want.
+
+## D27 — The evidence generator deleted the evidence it was meant to protect
+
+`generate-evidence.ts` preserved directories matching `discovery-*` and deleted the rest,
+then renamed the survivor to `01-discovery-llm-run`. On the *next* run that name no longer
+matched the pattern, so the script deleted the one artifact in the whole repository that
+costs a model call to reproduce.
+
+Now both forms are protected, the canonical name is preferred when present, and the script
+warns rather than silently continuing if no discovery run exists at all. The general
+lesson is the same one as D13: a destructive operation whose guard is a string pattern
+needs a test or an assertion, because the failure is silent and looks like success.

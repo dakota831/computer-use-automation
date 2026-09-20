@@ -14,6 +14,7 @@
     }
   },
   "tenant": "base",
+  "tenantOverrides": {},
   "inputs": [
     {
       "name": "memberId",
@@ -36,7 +37,7 @@
         "framePath": [
           {
             "name": "mainFrame",
-            "urlPattern": "/t/firstcu/frame/member",
+            "urlPattern": "/t/firstcu/frame/search",
             "index": 1
           }
         ],
@@ -74,8 +75,8 @@
           }
         ],
         "boundingBoxHint": {
-          "x": 136.0625,
-          "y": 159,
+          "x": 149.0625,
+          "y": 246,
           "width": 79.359375,
           "height": 22
         },
@@ -142,8 +143,8 @@
           }
         ],
         "boundingBoxHint": {
-          "x": 136.0625,
-          "y": 93,
+          "x": 149.0625,
+          "y": 180,
           "width": 79.359375,
           "height": 22
         },
@@ -159,11 +160,11 @@
   "steps": [
     {
       "id": "s1_type",
-      "intent": "Enter username",
+      "intent": "Enter user ID",
       "action": {
         "type": "type",
         "target": {
-          "describedAs": "Enter username",
+          "describedAs": "Enter user ID",
           "framePath": [
             {
               "name": "mainFrame",
@@ -194,17 +195,28 @@
             }
           ],
           "boundingBoxHint": {
-            "x": 100.03125,
-            "y": 75,
-            "width": 181,
-            "height": 21
+            "x": 113.03125,
+            "y": 162,
+            "width": 202,
+            "height": 22
           },
           "ambiguityPolicy": "fail"
         },
-        "value": "{{secret:corelink.username}}",
+        "value": "{{secret:corelink.password}}",
         "clearFirst": true
       },
       "riskClass": "safe",
+      "checkpoint": {
+        "all": [
+          {
+            "kind": "text_present",
+            "text": "00:00:05",
+            "match": "normalized"
+          }
+        ],
+        "timeoutMs": 10000,
+        "describedAs": "the screen reached the state expected after: Enter user ID"
+      },
       "outcomes": []
     },
     {
@@ -244,10 +256,10 @@
             }
           ],
           "boundingBoxHint": {
-            "x": 100.03125,
-            "y": 104,
-            "width": 181,
-            "height": 21
+            "x": 113.03125,
+            "y": 192,
+            "width": 202,
+            "height": 22
           },
           "ambiguityPolicy": "fail"
         },
@@ -255,6 +267,17 @@
         "clearFirst": true
       },
       "riskClass": "safe",
+      "checkpoint": {
+        "all": [
+          {
+            "kind": "text_present",
+            "text": "00:00:08",
+            "match": "normalized"
+          }
+        ],
+        "timeoutMs": 10000,
+        "describedAs": "the screen reached the state expected after: Enter password"
+      },
       "outcomes": []
     },
     {
@@ -305,30 +328,20 @@
             }
           ],
           "boundingBoxHint": {
-            "x": 100.03125,
-            "y": 133,
-            "width": 59.015625,
-            "height": 25
+            "x": 113.03125,
+            "y": 222,
+            "width": 65.359375,
+            "height": 24
           },
           "ambiguityPolicy": "fail"
         }
-      },
-      "riskClass": "safe",
-      "outcomes": []
-    },
-    {
-      "id": "s4_press",
-      "intent": "Attempt to submit login",
-      "action": {
-        "type": "press",
-        "key": "Enter"
       },
       "riskClass": "safe",
       "checkpoint": {
         "all": [
           {
             "kind": "text_present",
-            "text": "Member Search",
+            "text": "Lookup",
             "match": "normalized"
           },
           {
@@ -337,12 +350,12 @@
           }
         ],
         "timeoutMs": 10000,
-        "describedAs": "the screen reached the state expected after: Attempt to submit login"
+        "describedAs": "the screen reached the state expected after: Click Sign In"
       },
       "outcomes": []
     },
     {
-      "id": "s5_type",
+      "id": "s4_type",
       "intent": "Enter member ID",
       "action": {
         "type": "type",
@@ -378,10 +391,10 @@
             }
           ],
           "boundingBoxHint": {
-            "x": 106.6875,
-            "y": 75,
-            "width": 181,
-            "height": 21
+            "x": 119.6875,
+            "y": 162,
+            "width": 202,
+            "height": 22
           },
           "ambiguityPolicy": "fail"
         },
@@ -389,10 +402,21 @@
         "clearFirst": true
       },
       "riskClass": "safe",
+      "checkpoint": {
+        "all": [
+          {
+            "kind": "text_present",
+            "text": "00:00:06",
+            "match": "normalized"
+          }
+        ],
+        "timeoutMs": 10000,
+        "describedAs": "the screen reached the state expected after: Enter member ID"
+      },
       "outcomes": []
     },
     {
-      "id": "s6_click",
+      "id": "s5_click",
       "intent": "Click Search",
       "action": {
         "type": "click",
@@ -439,23 +463,13 @@
             }
           ],
           "boundingBoxHint": {
-            "x": 106.6875,
-            "y": 104,
-            "width": 56.65625,
-            "height": 25
+            "x": 119.6875,
+            "y": 192,
+            "width": 66.03125,
+            "height": 24
           },
           "ambiguityPolicy": "fail"
         }
-      },
-      "riskClass": "safe",
-      "outcomes": []
-    },
-    {
-      "id": "s7_press",
-      "intent": "Attempt to submit search",
-      "action": {
-        "type": "press",
-        "key": "Enter"
       },
       "riskClass": "safe",
       "checkpoint": {
@@ -464,14 +478,10 @@
             "kind": "text_present",
             "text": "Member Detail",
             "match": "normalized"
-          },
-          {
-            "kind": "url_matches",
-            "pattern": "/t/firstcu/frame/member"
           }
         ],
         "timeoutMs": 10000,
-        "describedAs": "the screen reached the state expected after: Attempt to submit search"
+        "describedAs": "the screen reached the state expected after: Click Search"
       },
       "outcomes": []
     }
@@ -480,7 +490,7 @@
     "all": [
       {
         "kind": "text_present",
-        "text": "Member Detail",
+        "text": "Lookup",
         "match": "normalized"
       },
       {
@@ -512,9 +522,9 @@
       "provider": "nvidia-nim",
       "model": "openai/gpt-oss-20b"
     },
-    "runId": "discovery-2026-09-20T18-21-01-q3uyw",
-    "createdAt": "2026-09-20T18:21:16.821Z",
-    "transcriptSha256": "de92d561a6e40c83a9938d3ad12fe9c8e19ad971c52a4c1428c904fc794ad74e",
+    "runId": "discovery-2026-09-20T19-36-34-1ro7q",
+    "createdAt": "2026-09-20T19:37:09.274Z",
+    "transcriptSha256": "3a754ffb308e8531839dd8eb384a7979e691bdd00947896d7bdfc0a8e45b1c4d",
     "humanAssisted": false
   }
 }

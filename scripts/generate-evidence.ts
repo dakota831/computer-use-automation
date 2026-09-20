@@ -34,19 +34,36 @@ const EV = "evidence";
 const catalog = new Catalog("artifacts").load();
 const baseline = catalog.find("cu.member.read_savings_balance")!.capability;
 
-// Preserve the most recent genuine discovery run, drop the rest.
-const discoveryRuns = readdirSync(EV)
-  .filter((d) => d.startsWith("discovery-"))
-  .sort();
-const keep = discoveryRuns[discoveryRuns.length - 1];
+/**
+ * Preserve the discovery run, delete the rest.
+ *
+ * The discovery run is the only evidence here that costs a model call to
+ * produce, so it is treated as precious: both the raw `discovery-<ts>` form and
+ * the renamed `01-discovery-llm-run` are protected. An earlier version matched
+ * only the raw prefix, so re-running this script silently destroyed the very
+ * artifact it was supposed to keep.
+ */
+const DISCOVERY_DIR = "01-discovery-llm-run";
+const isDiscovery = (d: string) =>
+  d === DISCOVERY_DIR || d.startsWith("discovery-");
+
+const existing = readdirSync(EV).filter(isDiscovery).sort();
+// Prefer an already-canonical directory; otherwise take the newest raw run.
+const keep = existing.includes(DISCOVERY_DIR)
+  ? DISCOVERY_DIR
+  : existing[existing.length - 1];
+
 for (const d of readdirSync(EV)) {
   if (d === keep || d === "README.md") continue;
   rmSync(`${EV}/${d}`, { recursive: true, force: true });
 }
-if (keep && keep !== "01-discovery-llm-run") {
-  if (existsSync(`${EV}/01-discovery-llm-run`))
-    rmSync(`${EV}/01-discovery-llm-run`, { recursive: true, force: true });
-  renameSync(`${EV}/${keep}`, `${EV}/01-discovery-llm-run`);
+if (keep && keep !== DISCOVERY_DIR) {
+  renameSync(`${EV}/${keep}`, `${EV}/${DISCOVERY_DIR}`);
+}
+if (!existsSync(`${EV}/${DISCOVERY_DIR}`)) {
+  console.warn(
+    `WARNING: no discovery run present. Run \`npm run discover\` to produce one.`,
+  );
 }
 
 type Case = {
@@ -55,6 +72,8 @@ type Case = {
   inputs: Record<string, unknown>;
   cap: Capability;
   expect: string;
+  /** Replay the same artifact against a different institution's install. */
+  tenant?: string;
 };
 const cases: Case[] = [
   {
@@ -99,6 +118,16 @@ const cases: Case[] = [
     inputs: { memberId: "12345" },
     expect: "failed",
   },
+  // Cross-tenant: the same artifact, recorded against First Community, applied
+  // to Summit - different host, different field labels, an extra interstitial.
+  {
+    dir: "08-replay-cross-tenant-summit",
+    label: "same artifact on a second institution",
+    cap: baseline,
+    inputs: { memberId: "100001" },
+    expect: "success",
+    tenant: "summit",
+  },
 ];
 
 const rows: string[] = [];
@@ -109,6 +138,7 @@ for (const c of cases) {
     inputs: c.inputs,
     secrets,
     evidenceDir: EV,
+    ...(c.tenant ? { tenant: c.tenant } : {}),
   });
   // The logger names the directory by runId; rename to something a reviewer can read.
   const produced = readdirSync(EV)

@@ -23,6 +23,7 @@ in any file here.
 | `05-replay-recovered-interstitial` | unexpected interstitial, recovered | `success` | {"savingsBalance":305.25,"memberName":"Dana Whitfield"} | ok |
 | `06-replay-hard-failure` | application error | `failed` | APP_ERROR | ok |
 | `07-replay-input-rejected` | malformed input, rejected before launch | `failed` | INPUT_INVALID | ok |
+| `08-replay-cross-tenant-summit` | same artifact on a second institution | `success` | {"savingsBalance":8214.55,"memberName":"Alina Marsh"} | ok |
 
 `01-discovery-llm-run` is a genuine LLM-driven run against the live target app
 (NVIDIA NIM, `openai/gpt-oss-20b`). It produced
