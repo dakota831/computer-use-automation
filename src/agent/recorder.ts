@@ -121,6 +121,14 @@ export function describeTarget(
 }
 
 /**
+ * Text that changes on its own and must never become a checkpoint: clocks,
+ * dates, and timestamps. The letter rule above catches a bare `00:00:03`; this
+ * catches a line that merely *contains* one.
+ */
+const VOLATILE =
+  /\b\d{1,2}:\d{2}(:\d{2})?\b|\b\d{4}-\d{2}-\d{2}\b|\b\d{1,2}\/\d{1,2}\/\d{2,4}\b/;
+
+/**
  * Derive a checkpoint from what actually changed on screen.
  *
  * Preferring text that appeared *and was not there before* is the point: an
@@ -166,10 +174,16 @@ export function deriveCheckpoint(
         l.length <= 60 &&
         !beforeLines.has(l) &&
         !containsForbidden(l) &&
-        // A field full of password bullets "appears" too. Asserting on it
-        // verifies nothing, which is worse than having no checkpoint at all
-        // because it looks like verification.
-        /[a-z0-9]/i.test(l),
+        // A marker must contain an actual letter.
+        //
+        // Three things this excludes, all of which produced bad checkpoints:
+        // a field of password bullets (verifies nothing), the shell's session
+        // clock (`00:00:03` — true once, never again), and per-member values
+        // like `$8,214.55` (true for one input only). A checkpoint that cannot
+        // hold on the next run is worse than no checkpoint, because it looks
+        // like verification.
+        /[a-z]/i.test(l) &&
+        !VOLATILE.test(l),
     );
 
   const all: Capability["successCondition"]["all"] = [];

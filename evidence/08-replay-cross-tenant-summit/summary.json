@@ -1,11 +1,11 @@
 {
-  "runId": "replay-2026-09-20T19-38-29-u3o5t",
+  "runId": "replay-2026-09-20T20-23-44-laptm",
   "mode": "replay",
-  "finishedAt": "2026-09-20T19:38:33.134Z",
+  "finishedAt": "2026-09-20T20:23:47.619Z",
   "events": 27,
   "redactions": {
     "field_pii": 3
   },
   "status": "success",
-  "durationMs": 3267
+  "durationMs": 3293
 }

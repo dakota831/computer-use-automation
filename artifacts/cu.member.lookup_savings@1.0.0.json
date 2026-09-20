@@ -206,17 +206,6 @@
         "clearFirst": true
       },
       "riskClass": "safe",
-      "checkpoint": {
-        "all": [
-          {
-            "kind": "text_present",
-            "text": "00:00:03",
-            "match": "normalized"
-          }
-        ],
-        "timeoutMs": 10000,
-        "describedAs": "the screen reached the state expected after: Enter username"
-      },
       "outcomes": []
     },
     {
@@ -267,17 +256,6 @@
         "clearFirst": true
       },
       "riskClass": "safe",
-      "checkpoint": {
-        "all": [
-          {
-            "kind": "text_present",
-            "text": "00:00:04",
-            "match": "normalized"
-          }
-        ],
-        "timeoutMs": 10000,
-        "describedAs": "the screen reached the state expected after: Enter password"
-      },
       "outcomes": []
     },
     {
@@ -402,17 +380,6 @@
         "clearFirst": true
       },
       "riskClass": "safe",
-      "checkpoint": {
-        "all": [
-          {
-            "kind": "text_present",
-            "text": "00:00:04",
-            "match": "normalized"
-          }
-        ],
-        "timeoutMs": 10000,
-        "describedAs": "the screen reached the state expected after: Enter member ID"
-      },
       "outcomes": []
     },
     {
@@ -522,9 +489,9 @@
       "provider": "nvidia-nim",
       "model": "openai/gpt-oss-20b"
     },
-    "runId": "discovery-2026-09-20T20-18-49-3xwuq",
-    "createdAt": "2026-09-20T20:19:10.311Z",
-    "transcriptSha256": "957a550f02159e457e624687d0c68303a0699f1de3f13083683836eb3e1fc371",
+    "runId": "discovery-2026-09-20T20-22-01-ivkys",
+    "createdAt": "2026-09-20T20:22:27.148Z",
+    "transcriptSha256": "2d6e2d185c359e74c2bdee040bffe68a5dc94b0371ab28c6c2c5316682458db1",
     "humanAssisted": false
   }
 }

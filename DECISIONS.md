@@ -567,3 +567,25 @@ compile instead of silently checking nothing.
 
 `tests/recorder.test.ts` covers the risk heuristic, the targeting rank order, and both
 halves of the URL guard.
+
+## D32 — The session clock became a checkpoint
+
+Found by looking at the diff view rather than by a test: a freshly discovered capability
+contained `text_present("00:00:03")`. The teller shell had grown a ticking session clock,
+that text was genuinely new after the action, and the recorder duly asserted on it — a
+checkpoint true for exactly one second and false on every subsequent run.
+
+The existing guard required a marker to contain `[a-z0-9]`, which a clock satisfies. It
+now requires an actual **letter**, plus an explicit reject for clock, date and timestamp
+shapes anywhere in the line. Three bad markers disappear at once: password bullets
+(verifies nothing), the clock (true once), and bare currency like `$8,214.55` (true for
+one member and wrong for every other).
+
+The wider point: a derived checkpoint is a guess about what *characterises* a screen, and
+the failure mode is not an error — it is a capability that silently stops working later.
+Adding realistic chrome to the application introduced volatile text, and the recorder had
+no notion that some text is unsuitable to assert on. It does now, and
+`tests/recorder.test.ts` covers clocks, dates, timestamps and currency.
+
+Worth noting how it surfaced: not from a failing test, but from reading a rendered diff of
+two artifacts. The diff view paid for itself within an hour of existing.

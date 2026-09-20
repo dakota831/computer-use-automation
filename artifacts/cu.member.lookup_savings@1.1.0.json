@@ -160,11 +160,11 @@
   "steps": [
     {
       "id": "s1_type",
-      "intent": "Enter user ID",
+      "intent": "Enter username",
       "action": {
         "type": "type",
         "target": {
-          "describedAs": "Enter user ID",
+          "describedAs": "Enter username",
           "framePath": [
             {
               "name": "mainFrame",
@@ -206,17 +206,6 @@
         "clearFirst": true
       },
       "riskClass": "safe",
-      "checkpoint": {
-        "all": [
-          {
-            "kind": "text_present",
-            "text": "00:00:05",
-            "match": "normalized"
-          }
-        ],
-        "timeoutMs": 10000,
-        "describedAs": "the screen reached the state expected after: Enter user ID"
-      },
       "outcomes": []
     },
     {
@@ -267,17 +256,6 @@
         "clearFirst": true
       },
       "riskClass": "safe",
-      "checkpoint": {
-        "all": [
-          {
-            "kind": "text_present",
-            "text": "00:00:08",
-            "match": "normalized"
-          }
-        ],
-        "timeoutMs": 10000,
-        "describedAs": "the screen reached the state expected after: Enter password"
-      },
       "outcomes": []
     },
     {
@@ -402,17 +380,6 @@
         "clearFirst": true
       },
       "riskClass": "safe",
-      "checkpoint": {
-        "all": [
-          {
-            "kind": "text_present",
-            "text": "00:00:06",
-            "match": "normalized"
-          }
-        ],
-        "timeoutMs": 10000,
-        "describedAs": "the screen reached the state expected after: Enter member ID"
-      },
       "outcomes": []
     },
     {
@@ -534,9 +501,9 @@
       "provider": "nvidia-nim",
       "model": "openai/gpt-oss-20b"
     },
-    "runId": "discovery-2026-09-20T19-36-34-1ro7q",
-    "createdAt": "2026-09-20T19:37:09.274Z",
-    "transcriptSha256": "3a754ffb308e8531839dd8eb384a7979e691bdd00947896d7bdfc0a8e45b1c4d",
+    "runId": "discovery-2026-09-20T20-22-01-ivkys",
+    "createdAt": "2026-09-20T20:22:27.148Z",
+    "transcriptSha256": "2d6e2d185c359e74c2bdee040bffe68a5dc94b0371ab28c6c2c5316682458db1",
     "humanAssisted": true
   }
 }

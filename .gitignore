@@ -6,3 +6,6 @@ dist-web/
 *.log
 node_modules/
 .playwright/
+
+# screenshots are committed; regenerate with node scripts/capture-docs.mjs
+!docs/screenshots/*.png

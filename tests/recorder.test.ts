@@ -200,3 +200,67 @@ describe("deriveCheckpoint", () => {
     ).toBe(true);
   });
 });
+
+describe("deriveCheckpoint — volatility", () => {
+  /**
+   * The shell grew a ticking session clock, and the recorder promptly asserted
+   * on "00:00:03" — true exactly once. A checkpoint that cannot hold on the
+   * next run is worse than no checkpoint, because it looks like verification.
+   */
+  it("never asserts on a clock", () => {
+    const cp = deriveCheckpoint(
+      obs("Teller Console"),
+      obs("Teller Console\n00:00:03\nMember Search"),
+      "click",
+    );
+    expect(JSON.stringify(cp ?? {})).not.toContain("00:00:03");
+    expect(
+      cp?.all.some(
+        (a) => a.kind === "text_present" && a.text === "Member Search",
+      ),
+    ).toBe(true);
+  });
+
+  it("never asserts on a date or timestamp", () => {
+    for (const volatile of [
+      "2026-09-20",
+      "9/20/2026",
+      "Posted 2026-09-20 at 18:51",
+    ]) {
+      const cp = deriveCheckpoint(
+        obs("x"),
+        obs(`x\n${volatile}\nAccount Register`),
+        "click",
+      );
+      expect(JSON.stringify(cp ?? {})).not.toContain(volatile);
+    }
+  });
+
+  // A balance is true for one member and wrong for every other.
+  it("never asserts on a bare currency amount", () => {
+    const cp = deriveCheckpoint(
+      obs("x"),
+      obs("x\n$8,214.55\nMember Detail"),
+      "click",
+    );
+    expect(JSON.stringify(cp ?? {})).not.toContain("8,214.55");
+    expect(
+      cp?.all.some(
+        (a) => a.kind === "text_present" && a.text === "Member Detail",
+      ),
+    ).toBe(true);
+  });
+
+  it("still accepts ordinary screen text", () => {
+    const cp = deriveCheckpoint(
+      obs("x"),
+      obs("x\nSub-Account Created"),
+      "click",
+    );
+    expect(
+      cp?.all.some(
+        (a) => a.kind === "text_present" && a.text === "Sub-Account Created",
+      ),
+    ).toBe(true);
+  });
+});
