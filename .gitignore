@@ -9,3 +9,7 @@ node_modules/
 
 # screenshots are committed; regenerate with node scripts/capture-docs.mjs
 !docs/screenshots/*.png
+
+# Ad-hoc runs. The curated set is 01-..08-, produced by npm run evidence.
+evidence/replay-20*/
+evidence/discovery-20*/
