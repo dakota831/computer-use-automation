@@ -15,8 +15,8 @@ import { Catalog } from "../server/catalog.js";
  */
 
 const SECRETS: Record<string, string> = {
-  "corelink.username": process.env.DEX_TELLER_USER ?? "teller1",
-  "corelink.password": process.env.DEX_TELLER_PASS ?? "demo-teller-pw",
+  "corelink.username": process.env.DEX_TELLER_USER ?? "admin",
+  "corelink.password": process.env.DEX_TELLER_PASS ?? "admin",
 };
 for (const v of Object.values(SECRETS)) redactor.registerSecret(v);
 const secrets = (k: string) => SECRETS[k];

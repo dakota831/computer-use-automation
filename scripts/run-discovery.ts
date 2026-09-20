@@ -40,8 +40,8 @@ const result = await discover({
     },
   },
   secrets: {
-    "corelink.username": process.env.DEX_TELLER_USER ?? "teller1",
-    "corelink.password": process.env.DEX_TELLER_PASS ?? "demo-teller-pw",
+    "corelink.username": process.env.DEX_TELLER_USER ?? "admin",
+    "corelink.password": process.env.DEX_TELLER_PASS ?? "admin",
   },
   model: process.env.DEX_MODEL ?? "openai/gpt-oss-20b",
   apiKey,

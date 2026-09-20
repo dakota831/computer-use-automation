@@ -1,20 +1,178 @@
 @import "tailwindcss";
 
-/* Design tokens live here so the whole console can be restyled from one place
-   once we care what it looks like. Dark by default: operators work in it for
-   long stretches, and it sits next to a screencast of a bright legacy app. */
+/* ============================================================================
+   DexDash design system — brutalist, institutional blue.
+   
+   The rules, so every screen stays coherent:
+     - zero border radius. Nothing is soft.
+     - borders are structural: 2px normal, 3px for primary surfaces
+     - shadows are hard offsets, never blurred
+     - no gradients, no translucency over content
+     - monospace for anything machine-generated (ids, paths, codes, values)
+     - uppercase + tracked labels for controls and column heads
+   
+   Light is the default because this is meant to read as institutional back-office
+   software, not a developer dashboard. Dark is available and persisted.
+   ========================================================================= */
+
 @theme {
-  --color-surface: oklch(0.21 0.01 260);
-  --color-surface-raised: oklch(0.26 0.012 260);
-  --color-edge: oklch(0.34 0.015 260);
-  --color-ink: oklch(0.95 0.005 260);
-  --color-ink-dim: oklch(0.72 0.012 260);
-  --color-accent: oklch(0.68 0.15 250);
-  --color-danger: oklch(0.65 0.19 25);
-  --color-ok: oklch(0.72 0.15 155);
+  /* Paper + ink */
+  --color-paper: oklch(0.976 0.004 250);
+  --color-paper-raised: oklch(1 0 0);
+  --color-paper-sunk: oklch(0.943 0.008 250);
+  --color-ink: oklch(0.18 0.036 255);
+  --color-ink-dim: oklch(0.452 0.032 255);
+  --color-ink-faint: oklch(0.62 0.024 255);
+
+  /* Institutional blue */
+  --color-navy: oklch(0.255 0.07 258);
+  --color-navy-deep: oklch(0.19 0.062 258);
+  --color-blue: oklch(0.52 0.17 258);
+  --color-blue-bright: oklch(0.62 0.175 253);
+  --color-blue-pale: oklch(0.93 0.03 253);
+
+  /* Semantics */
+  --color-ok: oklch(0.56 0.12 165);
+  --color-ok-pale: oklch(0.94 0.04 165);
+  --color-warn: oklch(0.66 0.15 75);
+  --color-warn-pale: oklch(0.95 0.05 85);
+  --color-danger: oklch(0.545 0.195 26);
+  --color-danger-pale: oklch(0.945 0.04 26);
+  --color-live: oklch(0.68 0.14 205);
+
+  /* Structure */
+  --color-rule: oklch(0.18 0.036 255);
+  --color-rule-soft: oklch(0.855 0.016 255);
+
+  --font-sans:
+    "IBM Plex Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI",
+    sans-serif;
+  --font-mono:
+    "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+
+  --radius-none: 0px;
 }
 
-body {
-  background: var(--color-surface);
-  color: var(--color-ink);
+/* Dark variant. Toggled by [data-theme] on <html>, persisted in localStorage. */
+:root[data-theme="dark"] {
+  --color-paper: oklch(0.18 0.03 258);
+  --color-paper-raised: oklch(0.225 0.032 258);
+  --color-paper-sunk: oklch(0.15 0.028 258);
+  --color-ink: oklch(0.96 0.008 255);
+  --color-ink-dim: oklch(0.76 0.018 255);
+  --color-ink-faint: oklch(0.6 0.02 255);
+  --color-navy: oklch(0.32 0.07 258);
+  --color-navy-deep: oklch(0.24 0.06 258);
+  --color-blue-pale: oklch(0.3 0.06 253);
+  --color-ok-pale: oklch(0.28 0.05 165);
+  --color-warn-pale: oklch(0.3 0.055 85);
+  --color-danger-pale: oklch(0.3 0.06 26);
+  --color-rule: oklch(0.56 0.03 255);
+  --color-rule-soft: oklch(0.33 0.026 258);
+}
+
+@layer base {
+  *,
+  *::before,
+  *::after {
+    border-radius: 0 !important;
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    background: var(--color-paper);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    font-feature-settings: "tnum" 1; /* tabular figures: money and ids line up */
+  }
+
+  /* Visible focus everywhere. A system built on accessibility trees should be
+     navigable by keyboard; this is not decoration. */
+  :focus-visible {
+    outline: 3px solid var(--color-blue-bright);
+    outline-offset: 2px;
+  }
+
+  ::selection {
+    background: var(--color-blue-bright);
+    color: white;
+  }
+
+  /* Brutalist scrollbars: square, high contrast. */
+  ::-webkit-scrollbar {
+    width: 12px;
+    height: 12px;
+  }
+  ::-webkit-scrollbar-track {
+    background: var(--color-paper-sunk);
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--color-navy);
+    border: 2px solid var(--color-paper-sunk);
+  }
+}
+
+@layer components {
+  /* Hard offset shadow — the signature of the whole system. */
+  .shadow-hard {
+    box-shadow: 4px 4px 0 0 var(--color-rule);
+  }
+  .shadow-hard-sm {
+    box-shadow: 2px 2px 0 0 var(--color-rule);
+  }
+  .shadow-hard-lg {
+    box-shadow: 6px 6px 0 0 var(--color-rule);
+  }
+
+  /* Pressed state: the element physically moves onto its own shadow. */
+  .press {
+    transition:
+      transform 60ms linear,
+      box-shadow 60ms linear;
+  }
+  .press:active:not(:disabled) {
+    transform: translate(2px, 2px);
+    box-shadow: 0 0 0 0 var(--color-rule);
+  }
+
+  .label-caps {
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    font-family: var(--font-mono);
+  }
+
+  .rule {
+    border: 2px solid var(--color-rule);
+  }
+  .rule-b {
+    border-bottom: 2px solid var(--color-rule);
+  }
+  .rule-t {
+    border-top: 2px solid var(--color-rule);
+  }
+
+  /* Diagonal hatch for "nothing here" and disabled regions. */
+  .hatch {
+    background-image: repeating-linear-gradient(
+      45deg,
+      transparent,
+      transparent 6px,
+      var(--color-rule-soft) 6px,
+      var(--color-rule-soft) 7px
+    );
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
 }

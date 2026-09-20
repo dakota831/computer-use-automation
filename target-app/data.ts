@@ -87,7 +87,8 @@ export const MEMBERS: Record<string, Member> = {
 /** Not in MEMBERS on purpose: the "record not found" business outcome. */
 export const NOT_FOUND_EXAMPLE = "999999";
 
-export const CREDENTIALS = { username: "teller1", password: "demo-teller-pw" };
+/** Demo credentials. admin/admin everywhere, because this is a demo tool. */
+export const CREDENTIALS = { username: "admin", password: "admin" };
 
 export const SCENARIOS = {
   "100001": "happy path, has savings balance",

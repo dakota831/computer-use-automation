@@ -115,7 +115,7 @@ Two tenants run the **same vendor product**, configured differently:
 | Savings label | "Savings Balance" | "Regular Savings" |
 | After login | straight to search | acknowledgement screen first |
 
-Sign in with `teller1` / `demo-teller-pw`.
+Sign in with `admin` / `admin`.
 
 ### Reproducible states
 

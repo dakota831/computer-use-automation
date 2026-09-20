@@ -1,19 +1,31 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
+import { resolve } from "node:path";
 
 /**
- * The operator console is the only real UI in this system. It is a separate
- * build rooted at web/, served in production by the same Node process that
- * runs the API, so there is one process and one port to reason about.
+ * Two entry points, one design system.
  *
- * In development Vite proxies /api and /ws through to that server, so the
- * frontend never needs to know where the backend lives.
+ *   index.html  -> the operator console   (console.dexdash.cloud)
+ *   site.html   -> the public explainer   (dexdash.cloud)
+ *
+ * A single build emits both and they share everything under src/shared, so the
+ * chrome cannot drift between the front door and the tool. Both hosts serve the
+ * same directory; nginx just picks a different index file.
  */
 export default defineConfig({
   root: "web",
   plugins: [react(), tailwindcss()],
-  build: { outDir: "../dist-web", emptyOutDir: true },
+  build: {
+    outDir: "../dist-web",
+    emptyOutDir: true,
+    rollupOptions: {
+      input: {
+        console: resolve(__dirname, "web/index.html"),
+        site: resolve(__dirname, "web/site.html"),
+      },
+    },
+  },
   server: {
     port: 5173,
     proxy: {

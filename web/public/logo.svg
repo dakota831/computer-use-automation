@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32" role="img" aria-label="DexDash">
+  <rect width="32" height="32" fill="#0b2545"/>
+  <rect x="3" y="3" width="26" height="26" fill="none" stroke="#f4f6fb" stroke-width="2"/>
+  <rect x="7" y="7" width="7" height="18" fill="#f4f6fb"/>
+  <path d="M17 7 L26 16 L17 25 Z" fill="#3b82f6"/>
+</svg>

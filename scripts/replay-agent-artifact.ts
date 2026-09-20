@@ -12,8 +12,8 @@ const cap = Capability.parse(
   ),
 );
 const SECRETS: Record<string, string> = {
-  "corelink.username": process.env.DEX_TELLER_USER ?? "teller1",
-  "corelink.password": process.env.DEX_TELLER_PASS ?? "demo-teller-pw",
+  "corelink.username": process.env.DEX_TELLER_USER ?? "admin",
+  "corelink.password": process.env.DEX_TELLER_PASS ?? "admin",
 };
 Object.values(SECRETS).forEach((v) => redactor.registerSecret(v));
 const secrets = (k: string) => SECRETS[k];

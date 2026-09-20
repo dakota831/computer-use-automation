@@ -7,6 +7,7 @@ import { WebSocketServer, type WebSocket } from "ws";
 import { existsSync } from "node:fs";
 import { Catalog } from "./catalog.js";
 import { interventions } from "./interventions.js";
+import { listRuns, runDetail, screenshotPath, stats } from "./runs.js";
 import { ControlLease } from "./lease.js";
 import { replay, type EscalationDecision } from "../replay/executor.js";
 import { WebSurface } from "../surface/web.js";
@@ -29,8 +30,8 @@ import { redactor } from "../core/redact.js";
 
 const PORT = Number(process.env.DEX_OPERATOR_PORT ?? 4000);
 const SECRETS: Record<string, string> = {
-  "corelink.username": process.env.DEX_TELLER_USER ?? "teller1",
-  "corelink.password": process.env.DEX_TELLER_PASS ?? "demo-teller-pw",
+  "corelink.username": process.env.DEX_TELLER_USER ?? "admin",
+  "corelink.password": process.env.DEX_TELLER_PASS ?? "admin",
 };
 for (const v of Object.values(SECRETS)) redactor.registerSecret(v);
 
@@ -121,6 +122,34 @@ app.post("/api/capabilities/:ref/invoke", async (req, res) => {
   } finally {
     await surface.close().catch(() => {});
   }
+});
+
+// ----------------------------------------------------------------- evidence
+
+app.get("/api/stats", (_req, res) => {
+  res.json({
+    ok: true,
+    capabilities: catalog.load().list().length,
+    approved: catalog.list().filter((c) => c.status === "approved").length,
+    drafts: catalog.list().filter((c) => c.status === "draft").length,
+    interventions: interventions.list().filter((i) => i.status !== "resolved")
+      .length,
+    ...stats(),
+  });
+});
+
+app.get("/api/runs", (_req, res) => res.json(listRuns()));
+
+app.get("/api/runs/:id", (req, res) => {
+  const d = runDetail(String(req.params.id));
+  if (!d) return res.status(404).json({ error: "no such run" });
+  res.json(d);
+});
+
+app.get("/api/runs/:id/screenshots/:name", (req, res) => {
+  const p = screenshotPath(String(req.params.id), String(req.params.name));
+  if (!p) return res.status(404).end();
+  res.sendFile(p, { root: process.cwd() });
 });
 
 // ------------------------------------------------------------ interventions
