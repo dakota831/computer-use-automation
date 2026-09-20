@@ -1,0 +1,500 @@
+{
+  "schemaVersion": "1.0.0",
+  "id": "cu.member.read_savings_balance",
+  "version": "1.0.0",
+  "title": "Read a member's savings balance",
+  "description": "Signs in to the teller console, looks up a member by ID, and returns their current savings balance and name. Read-only: performs no state change.",
+  "status": "approved",
+  "surface": {
+    "kind": "web",
+    "entryPoint": "http://127.0.0.1:8080/t/firstcu",
+    "appProfile": {
+      "vendorApp": "corelink-teller",
+      "versionRange": "8.x"
+    }
+  },
+  "tenant": "base",
+  "inputs": [
+    {
+      "name": "memberId",
+      "type": "string",
+      "required": true,
+      "description": "Six-digit member number.",
+      "sensitivity": "pii",
+      "pattern": "^\\d{6}$",
+      "example": "100001"
+    }
+  ],
+  "outputs": [
+    {
+      "name": "savingsBalance",
+      "type": "number",
+      "description": "Current savings balance in USD.",
+      "sensitivity": "internal",
+      "source": {
+        "describedAs": "the savings balance value cell",
+        "framePath": [
+          {
+            "name": "mainFrame"
+          }
+        ],
+        "strategies": [
+          {
+            "strategy": {
+              "kind": "label_proximity",
+              "labelText": "Savings Balance",
+              "labelMatch": "normalized",
+              "relation": "right_of",
+              "controlRole": "LayoutTableCell"
+            },
+            "confidence": 0.9,
+            "rationale": "no accessible name on this control; the visible label is the table cell to its left (\"Savings Balance\")"
+          },
+          {
+            "strategy": {
+              "kind": "label_proximity",
+              "labelText": "Regular Savings",
+              "labelMatch": "normalized",
+              "relation": "right_of",
+              "controlRole": "LayoutTableCell"
+            },
+            "confidence": 0.7,
+            "rationale": "tenant variant label for \"Savings Balance\""
+          }
+        ],
+        "ambiguityPolicy": "fail"
+      },
+      "transform": [
+        {
+          "op": "trim"
+        },
+        {
+          "op": "strip",
+          "chars": "$,"
+        },
+        {
+          "op": "to_number"
+        }
+      ]
+    },
+    {
+      "name": "memberName",
+      "type": "string",
+      "description": "Member's full name as shown on the record.",
+      "sensitivity": "pii",
+      "source": {
+        "describedAs": "the member name value cell",
+        "framePath": [
+          {
+            "name": "mainFrame"
+          }
+        ],
+        "strategies": [
+          {
+            "strategy": {
+              "kind": "label_proximity",
+              "labelText": "Name",
+              "labelMatch": "normalized",
+              "relation": "right_of",
+              "controlRole": "LayoutTableCell"
+            },
+            "confidence": 0.9,
+            "rationale": "no accessible name on this control; the visible label is the table cell to its left (\"Name\")"
+          }
+        ],
+        "ambiguityPolicy": "fail"
+      },
+      "transform": [
+        {
+          "op": "trim"
+        }
+      ]
+    }
+  ],
+  "steps": [
+    {
+      "id": "s1_user",
+      "intent": "Enter the teller user ID on the sign-in screen",
+      "action": {
+        "type": "type",
+        "target": {
+          "describedAs": "the User ID field",
+          "framePath": [
+            {
+              "name": "mainFrame"
+            }
+          ],
+          "strategies": [
+            {
+              "strategy": {
+                "kind": "label_proximity",
+                "labelText": "User ID",
+                "labelMatch": "normalized",
+                "relation": "right_of",
+                "controlRole": "textbox"
+              },
+              "confidence": 0.9,
+              "rationale": "no accessible name on this control; the visible label is the table cell to its left (\"User ID\")"
+            }
+          ],
+          "ambiguityPolicy": "fail"
+        },
+        "value": "{{secret:corelink.username}}",
+        "clearFirst": true
+      },
+      "riskClass": "safe",
+      "outcomes": []
+    },
+    {
+      "id": "s2_pass",
+      "intent": "Enter the teller password",
+      "action": {
+        "type": "type",
+        "target": {
+          "describedAs": "the Password field",
+          "framePath": [
+            {
+              "name": "mainFrame"
+            }
+          ],
+          "strategies": [
+            {
+              "strategy": {
+                "kind": "label_proximity",
+                "labelText": "Password",
+                "labelMatch": "normalized",
+                "relation": "right_of",
+                "controlRole": "textbox"
+              },
+              "confidence": 0.9,
+              "rationale": "no accessible name on this control; the visible label is the table cell to its left (\"Password\")"
+            }
+          ],
+          "ambiguityPolicy": "fail"
+        },
+        "value": "{{secret:corelink.password}}",
+        "clearFirst": true
+      },
+      "riskClass": "safe",
+      "outcomes": []
+    },
+    {
+      "id": "s3_signin",
+      "intent": "Submit the sign-in form and land on member search",
+      "action": {
+        "type": "click",
+        "target": {
+          "describedAs": "the Sign In button",
+          "framePath": [
+            {
+              "name": "mainFrame"
+            }
+          ],
+          "strategies": [
+            {
+              "strategy": {
+                "kind": "role_name",
+                "role": "button",
+                "name": "Sign In",
+                "nameMatch": "alias",
+                "aliases": []
+              },
+              "confidence": 0.95,
+              "rationale": "button carries a real accessible name; aliases cover tenant wording (Sign In)"
+            }
+          ],
+          "ambiguityPolicy": "fail"
+        }
+      },
+      "riskClass": "safe",
+      "checkpoint": {
+        "all": [
+          {
+            "kind": "text_present",
+            "text": "Member Search",
+            "match": "normalized"
+          }
+        ],
+        "timeoutMs": 10000,
+        "describedAs": "the member search screen is showing"
+      },
+      "outcomes": [
+        {
+          "code": "BAD_CREDENTIALS",
+          "describedAs": "the console rejected the configured teller credentials",
+          "detector": {
+            "kind": "text_present",
+            "text": "Invalid username or password",
+            "match": "normalized"
+          },
+          "disposition": "fail",
+          "maxAttempts": 1
+        },
+        {
+          "code": "ACKNOWLEDGEMENT_REQUIRED",
+          "describedAs": "an acceptable-use acknowledgement is blocking the session",
+          "detector": {
+            "kind": "text_present",
+            "text": "Acceptable Use Acknowledgement",
+            "match": "normalized"
+          },
+          "disposition": "recover",
+          "recovery": {
+            "do": "dismiss",
+            "target": {
+              "describedAs": "the acknowledgement button",
+              "framePath": [
+                {
+                  "name": "mainFrame"
+                }
+              ],
+              "strategies": [
+                {
+                  "strategy": {
+                    "kind": "role_name",
+                    "role": "button",
+                    "name": "I Acknowledge",
+                    "nameMatch": "alias",
+                    "aliases": []
+                  },
+                  "confidence": 0.95,
+                  "rationale": "button carries a real accessible name; aliases cover tenant wording (I Acknowledge)"
+                }
+              ],
+              "ambiguityPolicy": "fail"
+            },
+            "describedAs": "accept the acceptable-use notice"
+          },
+          "maxAttempts": 2
+        }
+      ]
+    },
+    {
+      "id": "s4_member_id",
+      "intent": "Type the member ID into the search field",
+      "action": {
+        "type": "type",
+        "target": {
+          "describedAs": "the Member ID field",
+          "framePath": [
+            {
+              "name": "mainFrame"
+            }
+          ],
+          "strategies": [
+            {
+              "strategy": {
+                "kind": "label_proximity",
+                "labelText": "Member ID",
+                "labelMatch": "normalized",
+                "relation": "right_of",
+                "controlRole": "textbox"
+              },
+              "confidence": 0.9,
+              "rationale": "no accessible name on this control; the visible label is the table cell to its left (\"Member ID\")"
+            },
+            {
+              "strategy": {
+                "kind": "label_proximity",
+                "labelText": "Member Number",
+                "labelMatch": "normalized",
+                "relation": "right_of",
+                "controlRole": "textbox"
+              },
+              "confidence": 0.7,
+              "rationale": "tenant variant label for \"Member ID\""
+            }
+          ],
+          "ambiguityPolicy": "fail"
+        },
+        "value": "{{memberId}}",
+        "clearFirst": true
+      },
+      "riskClass": "safe",
+      "outcomes": []
+    },
+    {
+      "id": "s5_search",
+      "intent": "Run the search and open the member record",
+      "action": {
+        "type": "click",
+        "target": {
+          "describedAs": "the Search button",
+          "framePath": [
+            {
+              "name": "mainFrame"
+            }
+          ],
+          "strategies": [
+            {
+              "strategy": {
+                "kind": "role_name",
+                "role": "button",
+                "name": "Search",
+                "nameMatch": "alias",
+                "aliases": [
+                  "Find"
+                ]
+              },
+              "confidence": 0.95,
+              "rationale": "button carries a real accessible name; aliases cover tenant wording (Search / Find)"
+            }
+          ],
+          "ambiguityPolicy": "fail"
+        }
+      },
+      "riskClass": "safe",
+      "checkpoint": {
+        "all": [
+          {
+            "kind": "text_present",
+            "text": "Member Detail",
+            "match": "normalized"
+          }
+        ],
+        "timeoutMs": 12000,
+        "describedAs": "the member detail record is showing"
+      },
+      "outcomes": [
+        {
+          "code": "MEMBER_NOT_FOUND",
+          "describedAs": "no member exists with the supplied ID",
+          "detector": {
+            "kind": "text_present",
+            "text": "No member found matching the ID supplied",
+            "match": "normalized"
+          },
+          "disposition": "business_outcome",
+          "maxAttempts": 1
+        },
+        {
+          "code": "INVALID_MEMBER_ID",
+          "describedAs": "the console rejected the member ID format",
+          "detector": {
+            "kind": "text_present",
+            "text": "Member ID must be 6 digits",
+            "match": "normalized"
+          },
+          "disposition": "business_outcome",
+          "maxAttempts": 1
+        },
+        {
+          "code": "PERMISSION_DENIED",
+          "describedAs": "this teller is not permitted to view the member record",
+          "detector": {
+            "kind": "text_present",
+            "text": "do not have permission to view this member record",
+            "match": "normalized"
+          },
+          "disposition": "business_outcome",
+          "maxAttempts": 1
+        },
+        {
+          "code": "VERIFICATION_REQUIRED",
+          "describedAs": "the record is flagged for additional verification",
+          "detector": {
+            "kind": "text_present",
+            "text": "flagged for additional verification",
+            "match": "normalized"
+          },
+          "disposition": "recover",
+          "recovery": {
+            "do": "dismiss",
+            "target": {
+              "describedAs": "the Continue to Record link",
+              "framePath": [
+                {
+                  "name": "mainFrame"
+                }
+              ],
+              "strategies": [
+                {
+                  "strategy": {
+                    "kind": "role_name",
+                    "role": "link",
+                    "name": "Continue to Record",
+                    "nameMatch": "normalized",
+                    "aliases": []
+                  },
+                  "confidence": 0.9,
+                  "rationale": "link has a real accessible name"
+                }
+              ],
+              "ambiguityPolicy": "fail"
+            },
+            "describedAs": "acknowledge the verification notice and continue to the record"
+          },
+          "maxAttempts": 3
+        },
+        {
+          "code": "APP_ERROR",
+          "describedAs": "the application returned an internal error loading the record",
+          "detector": {
+            "kind": "text_present",
+            "text": "An unexpected error occurred",
+            "match": "normalized"
+          },
+          "disposition": "fail",
+          "maxAttempts": 1
+        }
+      ]
+    }
+  ],
+  "successCondition": {
+    "all": [
+      {
+        "kind": "text_present",
+        "text": "Member Detail",
+        "match": "normalized"
+      },
+      {
+        "kind": "url_matches",
+        "pattern": "/frame/member"
+      }
+    ],
+    "timeoutMs": 10000,
+    "describedAs": "a member record with a savings balance is displayed"
+  },
+  "outcomes": [
+    {
+      "code": "SESSION_EXPIRED",
+      "describedAs": "the teller session timed out",
+      "detector": {
+        "kind": "text_present",
+        "text": "Your session has timed out",
+        "match": "normalized"
+      },
+      "disposition": "recover",
+      "recovery": {
+        "do": "reauthenticate"
+      },
+      "maxAttempts": 2
+    }
+  ],
+  "policy": {
+    "allowedOrigins": [
+      "http://127.0.0.1:8080/t/firstcu/*",
+      "http://127.0.0.1:8080/t/summit/*"
+    ],
+    "allowedActions": [
+      "navigate",
+      "click",
+      "type",
+      "select",
+      "press",
+      "read",
+      "wait_for"
+    ],
+    "confirmAtOrAbove": "irreversible"
+  },
+  "provenance": {
+    "discoveredBy": {
+      "provider": "hand-authored",
+      "model": "none"
+    },
+    "runId": "baseline",
+    "createdAt": "2026-09-20T18:04:58.060Z",
+    "transcriptSha256": "",
+    "humanAssisted": true
+  }
+}

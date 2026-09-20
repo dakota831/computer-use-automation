@@ -106,19 +106,47 @@ function matchSemantic(
     }
 
     case "label_proximity": {
-      // The recorded relation is meaningful: it constrains *how* the label was
-      // found, so a control labelled by a wrapping <label> does not silently
-      // satisfy a descriptor that recorded "the cell to the left".
+      /**
+       * Matches on the *neighbouring* label, not the node's own name.
+       *
+       * These are different facts. An unlabelled <input> has no name, so its
+       * adjacent text becomes its label and the two coincide. A value cell
+       * reading "$8,214.55" already has a perfectly good name of its own - the
+       * only way to address it is "the cell beside the one saying Savings
+       * Balance". Matching the node's own name finds the label cell, or nothing.
+       *
+       * The recorded relation is enforced rather than decorative. On a
+       * two-column layout the cell to the RIGHT of "Name:" and the cell BELOW
+       * it both report the same adjacent text, so without direction the
+       * descriptor is ambiguous and replay correctly refuses to act.
+       */
       const allowedSources =
         s.relation === "wraps"
           ? ["associated_label"]
           : ["adjacent_text", "associated_label"];
-      return nodes.filter(
-        (n) =>
-          roleEq(n.role, s.controlRole) &&
+
+      return nodes.filter((n) => {
+        if (!roleEq(n.role, s.controlRole)) return false;
+
+        // "after" is a deliberate wildcard for a recorder that could not
+        // determine a direction; anything else must agree.
+        const relationOk =
+          s.relation === "after" ||
+          n.adjacentRelation === undefined ||
+          n.adjacentRelation === s.relation;
+
+        const viaAdjacent =
+          relationOk &&
+          n.adjacentLabel !== undefined &&
+          nameMatches(n.adjacentLabel, [s.labelText], s.labelMatch);
+
+        // Fallback for a control whose inferred label *is* the adjacent text.
+        const viaOwnLabel =
           allowedSources.includes(n.labelSource) &&
-          nameMatches(n.label, [s.labelText], s.labelMatch),
-      );
+          nameMatches(n.label, [s.labelText], s.labelMatch);
+
+        return viaAdjacent || viaOwnLabel;
+      });
     }
 
     case "nth_of_role": {

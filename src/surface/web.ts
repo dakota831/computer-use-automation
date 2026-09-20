@@ -8,6 +8,7 @@ import {
 import type { FrameStep, TargetDescriptor } from "../core/targeting.js";
 import {
   INTERACTIVE_ROLES,
+  READABLE_ROLES,
   normalizeName,
   type FrameInfo,
   type Observation,
@@ -179,10 +180,8 @@ export class WebSurface implements Surface {
         if (name) textParts.push(name);
 
         const interactive = INTERACTIVE_ROLES.has(role);
-        if (!interactive && !name) continue;
-        if (!interactive && role !== "StaticText" && !CONTAINER_ROLES.has(role))
-          continue;
-        // Static text is collected for assertions but is not addressable.
+        const readable = READABLE_ROLES.has(role);
+        if (!interactive && !readable && !CONTAINER_ROLES.has(role)) continue;
         if (role === "StaticText") continue;
 
         const ref = `ref_${++this.refSeq}`;
@@ -190,20 +189,28 @@ export class WebSurface implements Surface {
 
         let label = name;
         let labelSource: SurfaceNode["labelSource"] = "accessible_name";
+        let adjacentLabel: string | undefined;
+        let adjacentRelation: SurfaceNode["adjacentRelation"];
         let bbox: Rect | undefined;
 
-        if (backendNodeId !== undefined && (interactive || !name)) {
+        // Enrichment runs for anything actionable or readable, not only for
+        // nameless nodes: a value cell has a name of its own and still needs to
+        // know what sits beside it.
+        if (backendNodeId !== undefined && (interactive || readable)) {
           const enriched = await this.enrich(backendNodeId, frameOffset);
           if (enriched) {
             bbox = enriched.bbox;
-            if (!label && enriched.label) {
-              label = enriched.label;
+            adjacentLabel = enriched.adjacentLabel || undefined;
+            adjacentRelation = enriched.adjacentRelation;
+            if (!label && enriched.adjacentLabel) {
+              label = enriched.adjacentLabel;
               labelSource = enriched.labelSource;
             }
           }
         }
 
         if (interactive && !label) continue; // unaddressable; nothing useful to record
+        if (readable && !label && !adjacentLabel) continue;
 
         const node: SurfaceNode = {
           ref,
@@ -219,6 +226,9 @@ export class WebSurface implements Surface {
           focusable:
             ax.properties?.find((p: any) => p.name === "focusable")?.value
               ?.value === true || undefined,
+          adjacentLabel,
+          adjacentRelation,
+          readOnly: readable && !interactive ? true : undefined,
           container: nearestContainer(ax, byId),
           framePath: this.framePathFor(frames, frame),
           bbox,
@@ -300,8 +310,9 @@ export class WebSurface implements Surface {
     backendNodeId: number,
     offset: { x: number; y: number },
   ): Promise<{
-    label: string;
+    adjacentLabel: string;
     labelSource: SurfaceNode["labelSource"];
+    adjacentRelation?: SurfaceNode["adjacentRelation"];
     bbox?: Rect;
   } | null> {
     try {
@@ -315,21 +326,21 @@ export class WebSurface implements Surface {
         functionDeclaration: `function () {
           const el = this;
           const txt = (n) => (n && n.innerText ? n.innerText.trim().replace(/\\s+/g, " ") : "");
-          let label = "", src = "attribute";
+          let label = "", src = "attribute", rel = "";
 
           const lbl = el.closest("label") || (el.id && document.querySelector('label[for="' + CSS.escape(el.id) + '"]'));
-          if (txt(lbl)) { label = txt(lbl); src = "associated_label"; }
+          if (txt(lbl)) { label = txt(lbl); src = "associated_label"; rel = "wraps"; }
 
           if (!label) {
             const td = el.closest("td, th");
             if (td) {
               const prev = td.previousElementSibling;
-              if (txt(prev)) { label = txt(prev); src = "adjacent_text"; }
+              if (txt(prev)) { label = txt(prev); src = "adjacent_text"; rel = "right_of"; }
               if (!label) {
                 const tr = td.closest("tr");
                 const idx = tr ? Array.prototype.indexOf.call(tr.children, td) : -1;
                 const above = tr && tr.previousElementSibling ? tr.previousElementSibling.children[idx] : null;
-                if (txt(above)) { label = txt(above); src = "adjacent_text"; }
+                if (txt(above)) { label = txt(above); src = "adjacent_text"; rel = "below"; }
               }
             }
           }
@@ -339,7 +350,7 @@ export class WebSurface implements Surface {
           if (!label && el.name) { label = String(el.name).split("$").pop(); src = "attribute"; }
 
           const r = el.getBoundingClientRect();
-          return JSON.stringify({ label, src, x: r.x, y: r.y, width: r.width, height: r.height });
+          return JSON.stringify({ label, src, rel, x: r.x, y: r.y, width: r.width, height: r.height });
         }`,
       });
       const v = JSON.parse(String(result?.value ?? "{}"));
@@ -352,7 +363,12 @@ export class WebSurface implements Surface {
               height: v.height,
             }
           : undefined;
-      return { label: String(v.label ?? "").trim(), labelSource: v.src, bbox };
+      return {
+        adjacentLabel: String(v.label ?? "").trim(),
+        labelSource: v.src,
+        adjacentRelation: v.rel || undefined,
+        bbox,
+      };
     } catch {
       return null;
     }

@@ -50,6 +50,25 @@ export type SurfaceNode = {
    */
   label: string;
   labelSource: LabelSource;
+  /**
+   * Text of the neighbouring label, kept separate from the node's own name.
+   *
+   * These are different facts and conflating them loses information. An
+   * unlabelled input has no name of its own, so its adjacent text *becomes* its
+   * label. A value cell reading "$8,214.55" has a perfectly good name already,
+   * but the only way to find it is "the cell beside the one saying Savings
+   * Balance" - so it needs both.
+   */
+  adjacentLabel?: string;
+  /**
+   * Which direction the adjacent label was found in. Without this the recorded
+   * `relation` on a descriptor is decorative: on a two-column layout the cell to
+   * the RIGHT of "Name:" and the cell BELOW "Name:" both report the same
+   * adjacent text, and a descriptor that cannot tell them apart is ambiguous.
+   */
+  adjacentRelation?: "right_of" | "below" | "wraps";
+  /** True when the node is readable but not actionable (a value cell). */
+  readOnly?: boolean;
   value?: string;
   disabled?: boolean;
   focusable?: boolean;
@@ -124,6 +143,21 @@ export interface Surface {
   url(): string;
   close(): Promise<void>;
 }
+
+/**
+ * Roles that carry readable values but are not actionable. Included in an
+ * observation so declared outputs can be extracted, and so text assertions can
+ * be scoped to a region rather than matched against the whole page.
+ */
+export const READABLE_ROLES = new Set([
+  "cell",
+  "LayoutTableCell",
+  "gridcell",
+  "rowheader",
+  "columnheader",
+  "paragraph",
+  "heading",
+]);
 
 /** Roles we treat as actionable. Kept explicit so the agent is not offered scenery. */
 export const INTERACTIVE_ROLES = new Set([

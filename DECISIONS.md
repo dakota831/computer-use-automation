@@ -183,3 +183,40 @@ system does something confidently wrong and reports nothing. It is the strongest
 argument in this codebase for why coordinates are recorded as evidence only and never
 used as a locator — a descriptor that resolves by role and label would have been
 unaffected by the offset bug, because it never needed to know where anything was.
+
+## D12 — After an action, wait for a *recognised* state, not just the expected one
+
+The first replay loop checked the outcome detectors once, immediately after acting, and
+then polled only the checkpoint. That is wrong, and the target app exposed it:
+
+A click that submits a form starts a navigation, so observing straight afterwards
+samples the *old* page. For member 200001 the permission-denied screen was therefore
+never detected. Worse, that screen reuses the "Member Detail" panel title, so the
+checkpoint later matched, every step "passed", and the run died at the very end with
+"could not extract declared outputs" — a legitimate business outcome reported as an
+extraction bug, three steps away from the actual cause.
+
+Outcomes and checkpoints are now polled *together* in one `settle()` loop: after every
+action we wait until the page is either where we expected to be, or somewhere we
+explicitly know about, whichever comes first. Timing out means neither, which is a real
+failure worth surfacing.
+
+Two things fell out of this beyond correctness. Runs got roughly five times faster
+(13s → 2.5s for the error cases), because the loop now exits the moment a state is
+recognised instead of waiting out a full timeout before checking. And steps with no
+checkpoint still settle briefly, because "nothing to verify" is not the same as
+"nothing can go wrong".
+
+## D13 — Two silent patch failures, and what they cost
+
+Worth recording because it shaped how the rest of this was built. Two edits to
+`resolve.ts` were applied with Python `str.replace`, whose search strings no longer
+matched after formatting. `str.replace` is a no-op on a miss, and the scripts printed
+success unconditionally — so two changes were reported as landed when neither had.
+
+The visible symptom was output extraction failing for reasons that made no sense given
+the code I believed was running. Every subsequent patch asserts on the result and fails
+loudly instead of reporting success it has not verified. The parallel to the system
+being built is not lost on me: an operation that silently does nothing and reports
+success is the exact failure mode the ambiguity policy and the checkpoints exist to
+prevent.
