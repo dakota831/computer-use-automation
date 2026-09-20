@@ -458,3 +458,72 @@ Now both forms are protected, the canonical name is preferred when present, and 
 warns rather than silently continuing if no discovery run exists at all. The general
 lesson is the same one as D13: a destructive operation whose guard is a string pattern
 needs a test or an assertion, because the failure is silent and looks like success.
+
+## D28 — The review loop is operable, which is what makes the draft gate real
+
+Until now the draft → approved gate was a claim the system made and a human could only
+honour by editing JSON over SSH. A gate nobody can pass is not a workflow, so the console
+now runs discovery, edits capabilities, and approves them.
+
+Three operations, each deliberately shaped:
+
+**Run discovery** (`POST /api/discovery`). Asynchronous with a polled job, because a run
+takes tens of seconds and holding an HTTP request open for it buys nothing. It has its own
+allowlist, separate from any capability's policy: "signed in to the console" and "may aim
+an LLM-driven browser at an arbitrary URL" are different privileges and are gated
+separately. Verified — an off-list entry point is refused.
+
+**Edit** (`PUT /api/capabilities/:ref`). Validated against the same Zod schema the replay
+engine parses with, so the console cannot write an artifact the executor would reject at
+runtime; the failure happens at save time with a human present to read it. Verified — a
+`riskClass: "catastrophic"` edit comes back with the exact path and expected values.
+Saving under a new version writes a new file, so editing an approved capability is
+naturally a new reviewable artifact rather than a silent mutation of something in
+production.
+
+**Approve** (`POST /api/capabilities/:ref/status`). One click, reversible; pulling a
+capability back to draft stops it running unattended immediately.
+
+**The loop, end to end, demonstrated.** The agent's draft returned `CHECKPOINT_FAILED` on
+member 999999 — technically true, useless to a caller. A human adds one outcome rule
+through the API; the same replay now returns `MEMBER_NOT_FOUND`. Still refused unattended
+while draft. Approved, and unattended invocation succeeds and the capability appears in
+the callable tool catalog.
+
+Both states are kept: `cu.member.lookup_savings@1.0.0` is exactly what the model emitted
+(draft, zero outcomes), `@1.1.0` is the reviewed version (approved, one outcome). The
+compare view diffs them, which makes "what review contributes" concrete rather than
+asserted.
+
+## D29 — Jump-to-next-anomaly, and comparing capabilities
+
+Two small things that change how the evidence is actually used.
+
+The run timeline marks anomalies and steps through them with `n`: a policy refusal, a
+detected outcome, a recovery, an escalation, a failed checkpoint, a locator that needed a
+fallback strategy, or a run that did not end in success. Scanning three hundred events for
+the one denial was the real task on that page.
+
+The compare view diffs two capabilities as pretty-printed JSON with a plain LCS, ignoring
+provenance (which differs on every run and says nothing about the flow). A few hundred
+lines makes O(n·m) imperceptible and avoids a dependency.
+
+## D30 — `min-width: auto` cost me four attempts, so here is the rule
+
+The capabilities page overflowed by 9px on a phone and resisted three fixes. The chain:
+the card is a grid *item*; grid and flex items default to `min-width: auto`; the card's
+min-content was set by a title using `truncate`, which implies `white-space: nowrap`, so
+the "truncating" element reported its full string as a minimum and widened everything
+above it.
+
+Two rules worth stating plainly, because I rediscovered both the hard way:
+
+  - `truncate` does nothing useful on a flex/grid child without `min-w-0`. It will not
+    ellipsis; it will widen the parent.
+  - Any flex or grid item that contains text you expect to shrink needs `min-w-0`,
+    including the item itself, not only its container.
+
+I also wasted one attempt patching the first `className="no-underline"` in the file, which
+was a button rather than the card. Measuring beat guessing: walking the DOM for elements
+whose right edge exceeded the viewport found it in one pass, after three edits based on
+plausible theories had not.

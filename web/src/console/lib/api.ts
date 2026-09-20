@@ -216,3 +216,69 @@ export const evidence = {
       attended,
     }),
 };
+
+/* ------------------------------------------------------------ authoring ---- */
+
+export type DiscoveryJob = {
+  id: string;
+  status: "running" | "succeeded" | "failed";
+  goal: string;
+  entryPoint: string;
+  startedAt: string;
+  finishedAt?: string;
+  capabilityId?: string;
+  version?: string;
+  runId?: string;
+  modelCalls?: number;
+  steps?: number;
+  error?: string;
+};
+
+export type DiscoveryInfo = {
+  allowedOrigins: string[];
+  configured: boolean;
+  jobs: DiscoveryJob[];
+};
+
+async function put<T>(path: string, body: unknown): Promise<T> {
+  const r = await fetch(path, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok)
+    throw new Error(
+      (j as { error?: string }).error ?? `${path} -> ${r.status}`,
+    );
+  return j as T;
+}
+
+/** POST that surfaces the server's error message rather than a bare status. */
+async function postX<T>(path: string, body?: unknown): Promise<T> {
+  const r = await fetch(path, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: body === undefined ? undefined : JSON.stringify(body),
+  });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok)
+    throw new Error(
+      (j as { error?: string }).error ?? `${path} -> ${r.status}`,
+    );
+  return j as T;
+}
+
+export const authoring = {
+  info: () => get<DiscoveryInfo>("/api/discovery"),
+  start: (body: Record<string, unknown>) =>
+    postX<DiscoveryJob>("/api/discovery", body),
+  job: (id: string) => get<DiscoveryJob>(`/api/discovery/${id}`),
+  save: (ref: string, capability: unknown) =>
+    put<{ ok: true; path: string; id: string; version: string }>(
+      `/api/capabilities/${ref}`,
+      capability,
+    ),
+  setStatus: (ref: string, status: "draft" | "approved" | "deprecated") =>
+    postX<{ status: string }>(`/api/capabilities/${ref}/status`, { status }),
+};

@@ -8,6 +8,13 @@ import { existsSync } from "node:fs";
 import { Catalog } from "./catalog.js";
 import { interventions } from "./interventions.js";
 import { listRuns, runDetail, screenshotPath, stats } from "./runs.js";
+import {
+  startDiscovery,
+  listJobs,
+  getJob,
+  saveCapability,
+  discoveryOrigins,
+} from "./authoring.js";
 import { ControlLease } from "./lease.js";
 import { replay, type EscalationDecision } from "../replay/executor.js";
 import { WebSurface } from "../surface/web.js";
@@ -153,6 +160,78 @@ app.get("/api/runs/:id/screenshots/:name", (req, res) => {
   const p = screenshotPath(String(req.params.id), String(req.params.name));
   if (!p) return res.status(404).end();
   res.sendFile(p, { root: process.cwd() });
+});
+
+// ----------------------------------------------------------------- authoring
+//
+// Running discovery and editing what it produced. This is how a draft becomes
+// an approved capability without anyone SSHing in to edit JSON.
+
+app.get("/api/discovery", (_req, res) => {
+  res.json({
+    allowedOrigins: discoveryOrigins(),
+    configured: Boolean(process.env.NVIDIA_API_KEY),
+    jobs: listJobs(),
+  });
+});
+
+app.post("/api/discovery", (req, res) => {
+  const b = req.body ?? {};
+  for (const f of ["goal", "entryPoint", "capabilityId", "title"]) {
+    if (!b[f] || typeof b[f] !== "string")
+      return res.status(400).json({ error: `"${f}" is required` });
+  }
+  const out = startDiscovery(
+    {
+      goal: b.goal,
+      entryPoint: b.entryPoint,
+      capabilityId: b.capabilityId,
+      title: b.title,
+      description: b.description ?? b.title,
+      vendorApp: b.vendorApp,
+      paramName: b.paramName,
+      paramValue: b.paramValue,
+      paramDescription: b.paramDescription,
+      model: b.model,
+      maxSteps: b.maxSteps ? Number(b.maxSteps) : undefined,
+    },
+    SECRETS,
+  );
+  if ("error" in out) return res.status(400).json({ error: out.error });
+  res.status(202).json(out.job);
+});
+
+app.get("/api/discovery/:id", (req, res) => {
+  const j = getJob(String(req.params.id));
+  if (!j) return res.status(404).json({ error: "no such job" });
+  res.json(j);
+});
+
+/** Save an edited capability. Validated against the schema replay parses with. */
+app.put("/api/capabilities/:ref", (req, res) => {
+  const out = saveCapability(req.body, { allowOverwrite: true });
+  if (!out.ok) return res.status(400).json({ error: out.error });
+  catalog.load();
+  res.json(out);
+});
+
+/** The common edit: move a reviewed draft to approved (or back). */
+app.post("/api/capabilities/:ref/status", (req, res) => {
+  const found = catalog.find(String(req.params.ref));
+  if (!found) return res.status(404).json({ error: "no such capability" });
+  const status = String(req.body?.status ?? "");
+  if (!["draft", "approved", "deprecated"].includes(status)) {
+    return res
+      .status(400)
+      .json({ error: "status must be draft, approved or deprecated" });
+  }
+  const out = saveCapability(
+    { ...found.capability, status },
+    { allowOverwrite: true },
+  );
+  if (!out.ok) return res.status(400).json({ error: out.error });
+  catalog.load();
+  res.json({ ...out, status });
 });
 
 // ------------------------------------------------------------ interventions

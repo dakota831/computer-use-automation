@@ -1,7 +1,17 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
-import { Play, ShieldAlert, Terminal } from "lucide-react";
-import { evidence, type CapabilityDoc } from "../lib/api.ts";
+import {
+  Play,
+  ShieldAlert,
+  Terminal,
+  Pencil,
+  CheckCircle2,
+  GitCompare,
+  Save,
+  X,
+} from "lucide-react";
+import { Link } from "react-router-dom";
+import { evidence, authoring, type CapabilityDoc } from "../lib/api.ts";
 import {
   Card,
   StatusBadge,
@@ -29,15 +39,65 @@ import { Crumbs, PageHead } from "../App.tsx";
  */
 export function CapabilityDetail() {
   const { ref = "" } = useParams();
+  const toast = useToast();
   const [doc, setDoc] = useState<CapabilityDoc | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [editing, setEditing] = useState(false);
+  const [draftJson, setDraftJson] = useState("");
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
 
-  useEffect(() => {
+  const load = () =>
     evidence
       .capability(ref)
-      .then(setDoc)
+      .then((d) => {
+        setDoc(d);
+        setDraftJson(JSON.stringify(d, null, 2));
+      })
       .catch((e) => setError(String(e)));
+
+  useEffect(() => {
+    void load();
   }, [ref]);
+
+  /**
+   * The review gate, as one click. A draft a human has read and added an
+   * outcome table to becomes approved; an approved capability can be pulled
+   * back to draft, which immediately stops it running unattended.
+   */
+  const toggleApproval = async (d: CapabilityDoc) => {
+    const next = d.status === "approved" ? "draft" : "approved";
+    try {
+      await authoring.setStatus(`${d.id}@${d.version}`, next);
+      toast(
+        next === "approved"
+          ? "Approved for unattended replay"
+          : "Returned to draft",
+        next === "approved" ? "ok" : "warn",
+      );
+      await load();
+    } catch (e) {
+      toast(String(e instanceof Error ? e.message : e), "danger");
+    }
+  };
+
+  const save = async () => {
+    setSaving(true);
+    setSaveError(null);
+    try {
+      const parsed = JSON.parse(draftJson);
+      const r = await authoring.save(`${parsed.id}@${parsed.version}`, parsed);
+      toast(`Saved ${r.id}@${r.version}`, "ok");
+      setEditing(false);
+      await load();
+    } catch (e) {
+      // Server-side Zod validation surfaces here, so an artifact the replay
+      // engine would reject cannot be written in the first place.
+      setSaveError(String(e instanceof Error ? e.message : e));
+    } finally {
+      setSaving(false);
+    }
+  };
 
   if (error) return <ErrorState error={error} />;
   if (!doc) return <Skeleton rows={6} />;
@@ -59,8 +119,77 @@ export function CapabilityDetail() {
       <PageHead
         title={doc.title}
         lede={doc.description}
-        right={<StatusBadge status={doc.status} />}
+        right={
+          <div className="flex flex-wrap items-center gap-2">
+            <StatusBadge status={doc.status} />
+            <Link
+              to={`/capabilities/compare?a=${ref}`}
+              className="no-underline"
+            >
+              <Button size="sm" title="Compare with another capability">
+                <GitCompare className="size-4" /> Compare
+              </Button>
+            </Link>
+            <Button size="sm" onClick={() => setEditing((e) => !e)}>
+              {editing ? (
+                <X className="size-4" />
+              ) : (
+                <Pencil className="size-4" />
+              )}
+              {editing ? "Cancel" : "Edit"}
+            </Button>
+            <Button
+              size="sm"
+              variant={doc.status === "approved" ? "default" : "primary"}
+              onClick={() => toggleApproval(doc)}
+              title={
+                doc.status === "approved"
+                  ? "Return to draft"
+                  : "Approve for unattended replay"
+              }
+            >
+              <CheckCircle2 className="size-4" />
+              {doc.status === "approved" ? "Return to draft" : "Approve"}
+            </Button>
+          </div>
+        }
       />
+
+      {editing && (
+        <Card
+          className="mb-4"
+          title="Edit capability"
+          aside={
+            <Button
+              size="sm"
+              variant="primary"
+              onClick={save}
+              disabled={saving}
+            >
+              <Save className="size-4" /> {saving ? "Saving…" : "Save"}
+            </Button>
+          }
+        >
+          <p className="mb-2 text-xs text-ink-dim">
+            Validated against the same schema the replay engine parses with, so
+            anything saved here is executable. Change <Mono>version</Mono> to
+            write a new artifact instead of overwriting this one.
+          </p>
+          <textarea
+            value={draftJson}
+            onChange={(e) => setDraftJson(e.target.value)}
+            spellCheck={false}
+            rows={26}
+            aria-label="Capability JSON"
+            className="rule w-full min-w-0 bg-paper-sunk p-2 font-mono text-[0.6875rem] leading-relaxed outline-none focus:bg-paper-raised"
+          />
+          {saveError && (
+            <div className="rule mt-2 border-danger bg-danger-pale p-2 text-xs break-words text-danger">
+              {saveError}
+            </div>
+          )}
+        </Card>
+      )}
 
       <div className="grid min-w-0 gap-4 lg:grid-cols-[1.4fr_1fr]">
         <div className="flex min-w-0 flex-col gap-4">

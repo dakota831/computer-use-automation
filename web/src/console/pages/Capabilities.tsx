@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { Search } from "lucide-react";
+import { Search, Sparkles, GitCompare } from "lucide-react";
 import { api, type CapabilitySummary } from "../lib/api.ts";
 import { usePoll } from "../../shared/hooks.ts";
 import {
@@ -11,6 +11,7 @@ import {
   ErrorState,
   Mono,
   Badge,
+  Button,
 } from "../../shared/ui.tsx";
 import { PageHead } from "../App.tsx";
 
@@ -42,6 +43,20 @@ export function Capabilities() {
         lede="Recorded flows an agent can invoke by name with typed arguments. Only approved capabilities may run unattended."
         lastUpdated={lastUpdated}
         onRefresh={refresh}
+        right={
+          <div className="flex gap-2">
+            <Link to="/capabilities/compare" className="no-underline">
+              <Button size="sm">
+                <GitCompare className="size-4" /> Compare
+              </Button>
+            </Link>
+            <Link to="/capabilities/new" className="no-underline">
+              <Button size="sm" variant="primary">
+                <Sparkles className="size-4" /> Teach new
+              </Button>
+            </Link>
+          </div>
+        }
       />
 
       <div className="mb-4 flex flex-wrap items-center gap-2">
@@ -78,39 +93,39 @@ export function Capabilities() {
         />
       )}
 
-      <div className="grid gap-3 lg:grid-cols-2">
+      <div className="grid min-w-0 gap-3 lg:grid-cols-2">
         {items.map((c) => (
           <Link
             key={`${c.id}@${c.version}`}
             to={`/capabilities/${c.id}@${c.version}`}
-            className="no-underline"
+            className="block min-w-0 no-underline"
           >
             <Card
               className="press h-full hover:bg-blue-pale"
-              title={<span className="truncate">{c.title}</span>}
+              title={<span className="block min-w-0 truncate">{c.title}</span>}
               aside={<StatusBadge status={c.status} />}
             >
               <p className="text-sm text-ink-dim">{c.description}</p>
-              <dl className="mt-3 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-xs">
+              <dl className="mt-3 grid min-w-0 grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-1 text-xs">
                 <dt className="label-caps text-ink-faint">id</dt>
-                <dd>
+                <dd className="min-w-0 break-all">
                   <Mono>
                     {c.id}@{c.version}
                   </Mono>
                 </dd>
                 <dt className="label-caps text-ink-faint">app</dt>
-                <dd>
+                <dd className="min-w-0 break-all">
                   <Mono>{c.vendorApp}</Mono> · tenant <Mono>{c.tenant}</Mono>
                 </dd>
                 <dt className="label-caps text-ink-faint">in</dt>
-                <dd>
+                <dd className="min-w-0 break-all">
                   <Mono>
                     {c.inputs.map((i) => `${i.name}:${i.type}`).join(", ") ||
                       "—"}
                   </Mono>
                 </dd>
                 <dt className="label-caps text-ink-faint">out</dt>
-                <dd>
+                <dd className="min-w-0 break-all">
                   <Mono>
                     {c.outputs.map((o) => `${o.name}:${o.type}`).join(", ") ||
                       "—"}

@@ -16,6 +16,8 @@ import { CommandPalette } from "./CommandPalette.tsx";
 import { Overview } from "./pages/Overview.tsx";
 import { Capabilities } from "./pages/Capabilities.tsx";
 import { CapabilityDetail } from "./pages/CapabilityDetail.tsx";
+import { NewCapability } from "./pages/NewCapability.tsx";
+import { Diff } from "./pages/Diff.tsx";
 import { Interventions } from "./pages/Interventions.tsx";
 import { SessionView } from "./pages/SessionView.tsx";
 import { Runs } from "./pages/Runs.tsx";
@@ -91,6 +93,18 @@ export default function App() {
         run: () => nav("/runs"),
       },
       {
+        keys: "g n",
+        description: "Teach a new capability",
+        group: "Navigate",
+        run: () => nav("/capabilities/new"),
+      },
+      {
+        keys: "g d",
+        description: "Compare capabilities",
+        group: "Navigate",
+        run: () => nav("/capabilities/compare"),
+      },
+      {
         keys: "r",
         description: "Toggle auto-refresh",
         group: "View",
@@ -154,6 +168,9 @@ export default function App() {
           />
           <Route path="/session/:id" element={<SessionView />} />
           <Route path="/capabilities" element={<Capabilities />} />
+          {/* static segments before the dynamic one */}
+          <Route path="/capabilities/new" element={<NewCapability />} />
+          <Route path="/capabilities/compare" element={<Diff />} />
           <Route path="/capabilities/:ref" element={<CapabilityDetail />} />
           <Route path="/runs" element={<Runs prefs={prefs} />} />
           <Route path="/runs/:id" element={<RunDetail />} />
@@ -225,8 +242,8 @@ export function PageHead({
   onRefresh?: () => void;
 }) {
   return (
-    <div className="mb-4 flex flex-wrap items-end gap-3">
-      <div>
+    <div className="mb-4 flex min-w-0 flex-wrap items-end gap-3">
+      <div className="min-w-0">
         <h1 className="text-xl font-bold tracking-tight sm:text-2xl">
           {title}
         </h1>
@@ -234,7 +251,7 @@ export function PageHead({
           <p className="mt-0.5 max-w-2xl text-sm text-ink-dim">{lede}</p>
         )}
       </div>
-      <div className="ml-auto flex items-center gap-2">
+      <div className="ml-auto flex min-w-0 flex-wrap items-center gap-2">
         {lastUpdated && (
           <span className="hidden font-mono text-[0.6875rem] text-ink-faint sm:inline">
             updated {lastUpdated.toLocaleTimeString()}

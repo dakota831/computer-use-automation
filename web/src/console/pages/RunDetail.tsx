@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import clsx from "clsx";
 import { useParams } from "react-router-dom";
 import { evidence, type RunEvent, type RunSummary } from "../lib/api.ts";
 import { formatAbsolute } from "../../shared/hooks.ts";
@@ -13,6 +14,8 @@ import {
   EmptyState,
 } from "../../shared/ui.tsx";
 import { CopyButton } from "../../shared/Chrome.tsx";
+import { AlertTriangle, ChevronDown } from "lucide-react";
+import { Button, Kbd } from "../../shared/ui.tsx";
 import { Crumbs, PageHead } from "../App.tsx";
 
 /**
@@ -44,6 +47,41 @@ const KIND_TONE: Record<
   note: "neutral",
 };
 
+/**
+ * What counts as worth looking at.
+ *
+ * Scanning three hundred events for the one policy denial is the actual task on
+ * this page, so the interesting ones are addressable directly. "Interesting" is
+ * anything that departed from the straight path: a refusal, a detected outcome,
+ * a recovery, an escalation, a failed checkpoint, a locator that needed a
+ * fallback strategy, or a run that did not end in success.
+ */
+export function isAnomaly(e: RunEvent): boolean {
+  switch (e.kind) {
+    case "policy_verdict":
+      return e.decision !== "allow";
+    case "outcome_detected":
+    case "recovery":
+    case "escalation_raised":
+    case "control_transferred":
+    case "human_action":
+      return true;
+    case "checkpoint":
+      return e.ok === false;
+    case "resolution":
+      return (
+        e.ok === false ||
+        (typeof e.strategyIndex === "number" && e.strategyIndex > 0)
+      );
+    case "run_finished":
+      return e.status !== "success";
+    case "note":
+      return Boolean(e.error);
+    default:
+      return false;
+  }
+}
+
 export function RunDetail() {
   const { id = "" } = useParams();
   const [data, setData] = useState<{
@@ -53,6 +91,8 @@ export function RunDetail() {
   } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<string>("all");
+  const [cursor, setCursor] = useState(-1);
+  const listRef = useRef<HTMLOListElement | null>(null);
 
   useEffect(() => {
     evidence
@@ -70,6 +110,42 @@ export function RunDetail() {
       (data?.events ?? []).filter((e) => filter === "all" || e.kind === filter),
     [data, filter],
   );
+
+  const anomalies = useMemo(
+    () => events.map((e, i) => (isAnomaly(e) ? i : -1)).filter((i) => i >= 0),
+    [events],
+  );
+
+  const jumpToNext = useCallback(() => {
+    if (!anomalies.length) return;
+    const next = anomalies.find((i) => i > cursor) ?? anomalies[0]!;
+    setCursor(next);
+    const el = listRef.current?.querySelector<HTMLElement>(
+      `[data-row="${next}"]`,
+    );
+    el?.scrollIntoView({ behavior: "smooth", block: "center" });
+    el?.focus({ preventScroll: true });
+  }, [anomalies, cursor]);
+
+  // `n` steps through anomalies without reaching for the mouse.
+  useEffect(() => {
+    const onKey = (ev: KeyboardEvent) => {
+      const t = ev.target as HTMLElement | null;
+      if (
+        t &&
+        (t.tagName === "INPUT" ||
+          t.tagName === "TEXTAREA" ||
+          t.tagName === "SELECT")
+      )
+        return;
+      if (ev.key === "n") {
+        ev.preventDefault();
+        jumpToNext();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [jumpToNext]);
 
   if (error) return <ErrorState error={error} />;
   if (!data) return <Skeleton rows={8} />;
@@ -140,19 +216,34 @@ export function RunDetail() {
         <Card
           title={`Timeline (${events.length})`}
           aside={
-            <select
-              value={filter}
-              onChange={(e) => setFilter(e.target.value)}
-              aria-label="Filter events by kind"
-              className="rule bg-paper-raised px-1.5 py-0.5 font-mono text-xs"
-            >
-              <option value="all">all kinds</option>
-              {kinds.map((k) => (
-                <option key={k} value={k}>
-                  {k}
-                </option>
-              ))}
-            </select>
+            <>
+              <Button
+                size="sm"
+                onClick={jumpToNext}
+                disabled={!anomalies.length}
+                title="Jump to the next notable event (n)"
+              >
+                <AlertTriangle className="size-3.5" />
+                {anomalies.length
+                  ? `${anomalies.length} notable`
+                  : "none notable"}
+                <ChevronDown className="size-3.5" />
+              </Button>
+              <Kbd>n</Kbd>
+              <select
+                value={filter}
+                onChange={(e) => setFilter(e.target.value)}
+                aria-label="Filter events by kind"
+                className="rule bg-paper-raised px-1.5 py-0.5 font-mono text-xs"
+              >
+                <option value="all">all kinds</option>
+                {kinds.map((k) => (
+                  <option key={k} value={k}>
+                    {k}
+                  </option>
+                ))}
+              </select>
+            </>
           }
         >
           {events.length === 0 ? (
@@ -161,9 +252,14 @@ export function RunDetail() {
               detail="This run produced no log entries."
             />
           ) : (
-            <ol className="flex flex-col">
-              {events.map((e) => (
-                <EventRow key={e.seq} e={e} />
+            <ol className="flex flex-col" ref={listRef}>
+              {events.map((e, i) => (
+                <EventRow
+                  key={e.seq}
+                  e={e}
+                  index={i}
+                  highlighted={i === cursor}
+                />
               ))}
             </ol>
           )}
@@ -173,13 +269,29 @@ export function RunDetail() {
   );
 }
 
-function EventRow({ e }: { e: RunEvent }) {
+function EventRow({
+  e,
+  index,
+  highlighted,
+}: {
+  e: RunEvent;
+  index: number;
+  highlighted: boolean;
+}) {
   const [open, setOpen] = useState(false);
   const { ts, seq, kind, stepId, ...rest } = e;
   const summary = summarise(kind, rest);
 
   return (
-    <li className="border-b border-rule-soft py-1.5 last:border-0">
+    <li
+      data-row={index}
+      tabIndex={-1}
+      className={clsx(
+        "border-b border-rule-soft py-1.5 outline-none last:border-0",
+        highlighted && "bg-blue-pale ring-2 ring-blue",
+        isAnomaly(e) && !highlighted && "bg-warn-pale/40",
+      )}
+    >
       <button
         onClick={() => setOpen((o) => !o)}
         aria-expanded={open}

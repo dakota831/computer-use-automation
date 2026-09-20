@@ -55,6 +55,12 @@ for (const [name, url, auth] of [
   ["console-capabilities", `${CONSOLE}/capabilities`, true],
   ["console-capdetail", `${CONSOLE}/capabilities/cu.member.open_subaccount@1.0.0`, true],
   ["console-runs", `${CONSOLE}/runs`, true],
+  ["console-new-capability", `${CONSOLE}/capabilities/new`, true],
+  [
+    "console-diff",
+    `${CONSOLE}/capabilities/compare?a=cu.member.lookup_savings@1.0.0&b=cu.member.lookup_savings@1.1.0`,
+    true,
+  ],
 ]) {
   for (const [label, vp] of [["desktop", DESK], ["mobile", PHONE]]) {
     const ctx = await b.newContext({ viewport: vp, ...(auth ? { httpCredentials: CRED } : {}) });

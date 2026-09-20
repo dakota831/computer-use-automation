@@ -113,8 +113,8 @@ export function Card({
       className={clsx("rule min-w-0 bg-paper-raised shadow-hard", className)}
     >
       {title && (
-        <header className="rule-b flex items-center gap-3 bg-paper-sunk px-3 py-2">
-          <h2 className="label-caps">{title}</h2>
+        <header className="rule-b flex min-w-0 items-center gap-3 bg-paper-sunk px-3 py-2">
+          <h2 className="label-caps min-w-0 truncate">{title}</h2>
           {aside && (
             <div className="ml-auto flex items-center gap-2">{aside}</div>
           )}
