@@ -9,7 +9,7 @@ import {
   Building2,
   Terminal,
 } from "lucide-react";
-import { Header, Footer, ThemeToggle, CopyButton } from "../shared/Chrome.tsx";
+import { Header, Footer, CopyButton } from "../shared/Chrome.tsx";
 import { Badge, Card, Mono } from "../shared/ui.tsx";
 
 /**
@@ -49,12 +49,7 @@ export default function Site() {
 
   return (
     <div className="flex min-h-full flex-col">
-      <Header
-        sub="Automation Platform"
-        nav={NAV}
-        right={<ThemeToggle />}
-        homeHref="/"
-      />
+      <Header sub="Automation Platform" nav={NAV} homeHref="/" />
 
       {/* Status strip: proof of life, not decoration. */}
       <div className="rule-b bg-paper-sunk">

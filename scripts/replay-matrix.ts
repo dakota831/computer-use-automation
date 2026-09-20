@@ -1,7 +1,9 @@
+import { config as loadEnv } from "dotenv";
+loadEnv({ quiet: true });
 import { readFileSync } from "node:fs";
-import { Capability } from "./src/core/artifact.js";
-import { replay } from "./src/replay/executor.js";
-import { redactor } from "./src/core/redact.js";
+import { Capability } from "../src/core/artifact.js";
+import { replay } from "../src/replay/executor.js";
+import { redactor } from "../src/core/redact.js";
 
 const cap = Capability.parse(
   JSON.parse(
@@ -10,8 +12,8 @@ const cap = Capability.parse(
 );
 
 const SECRETS: Record<string, string> = {
-  "corelink.username": "teller1",
-  "corelink.password": "demo-teller-pw",
+  "corelink.username": process.env.DEX_TELLER_USER ?? "admin",
+  "corelink.password": process.env.DEX_TELLER_PASS ?? "admin",
 };
 Object.values(SECRETS).forEach((v) => redactor.registerSecret(v));
 const secrets = (k: string) => SECRETS[k];

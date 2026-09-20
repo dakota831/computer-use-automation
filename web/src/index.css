@@ -53,24 +53,6 @@
   --radius-none: 0px;
 }
 
-/* Dark variant. Toggled by [data-theme] on <html>, persisted in localStorage. */
-:root[data-theme="dark"] {
-  --color-paper: oklch(0.18 0.03 258);
-  --color-paper-raised: oklch(0.225 0.032 258);
-  --color-paper-sunk: oklch(0.15 0.028 258);
-  --color-ink: oklch(0.96 0.008 255);
-  --color-ink-dim: oklch(0.76 0.018 255);
-  --color-ink-faint: oklch(0.6 0.02 255);
-  --color-navy: oklch(0.32 0.07 258);
-  --color-navy-deep: oklch(0.24 0.06 258);
-  --color-blue-pale: oklch(0.3 0.06 253);
-  --color-ok-pale: oklch(0.28 0.05 165);
-  --color-warn-pale: oklch(0.3 0.055 85);
-  --color-danger-pale: oklch(0.3 0.06 26);
-  --color-rule: oklch(0.56 0.03 255);
-  --color-rule-soft: oklch(0.33 0.026 258);
-}
-
 @layer base {
   *,
   *::before,

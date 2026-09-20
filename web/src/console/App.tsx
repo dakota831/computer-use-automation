@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import {
   Routes,
   Route,
@@ -9,7 +9,7 @@ import {
 } from "react-router-dom";
 import { Command, Keyboard, RefreshCw, Pause, Play } from "lucide-react";
 import clsx from "clsx";
-import { Header, Footer, ThemeToggle } from "../shared/Chrome.tsx";
+import { Header, Footer } from "../shared/Chrome.tsx";
 import { Kbd, Badge } from "../shared/ui.tsx";
 import { useHotkeys, useLocalStorage, type Hotkey } from "../shared/hooks.ts";
 import { CommandPalette } from "./CommandPalette.tsx";
@@ -96,30 +96,10 @@ export default function App() {
         group: "View",
         run: () => setAuto(!auto),
       },
-      {
-        keys: "t",
-        description: "Toggle theme",
-        group: "View",
-        run: () => {
-          const el = document.documentElement;
-          const next = el.dataset.theme === "dark" ? "light" : "dark";
-          el.dataset.theme = next;
-          try {
-            localStorage.setItem("dex.theme", JSON.stringify(next));
-          } catch {
-            /* private mode */
-          }
-        },
-      },
     ],
     [nav, auto, setAuto],
   );
   useHotkeys(hotkeys);
-
-  useEffect(() => {
-    const t = document.documentElement.dataset.theme;
-    if (!t) document.documentElement.dataset.theme = "light";
-  }, []);
 
   const navItems = NAV.map((n) => ({
     ...n,
@@ -161,7 +141,6 @@ export default function App() {
               <Command className="size-3.5" />
               <span className="label-caps hidden sm:inline">⌘K</span>
             </button>
-            <ThemeToggle />
           </>
         }
       />

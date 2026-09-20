@@ -1,7 +1,7 @@
 import { useState, type ReactNode } from "react";
-import { Copy, Check, Moon, Sun, Menu, X } from "lucide-react";
+import { Copy, Check, Menu, X } from "lucide-react";
 import clsx from "clsx";
-import { useCopy, useTheme } from "./hooks.ts";
+import { useCopy } from "./hooks.ts";
 import { useToast } from "./Toast.tsx";
 
 /** The mark: a solid "record" block beside an open "replay" chevron. */
@@ -74,24 +74,6 @@ export function CopyButton({
         <Check className="size-3.5 text-ok" />
       ) : (
         <Copy className="size-3.5" />
-      )}
-    </button>
-  );
-}
-
-export function ThemeToggle() {
-  const [theme, setTheme] = useTheme();
-  return (
-    <button
-      onClick={() => setTheme(theme === "light" ? "dark" : "light")}
-      aria-label={`Switch to ${theme === "light" ? "dark" : "light"} theme`}
-      title={`Switch to ${theme === "light" ? "dark" : "light"} theme`}
-      className="press rule inline-flex items-center justify-center bg-paper-raised p-1.5 shadow-hard-sm"
-    >
-      {theme === "light" ? (
-        <Moon className="size-4" />
-      ) : (
-        <Sun className="size-4" />
       )}
     </button>
   );

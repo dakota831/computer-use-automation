@@ -1,6 +1,13 @@
 import { config as loadEnv } from "dotenv";
 loadEnv({ quiet: true });
-import { rmSync, mkdirSync, writeFileSync, renameSync, existsSync, readdirSync } from "node:fs";
+import {
+  rmSync,
+  mkdirSync,
+  writeFileSync,
+  renameSync,
+  existsSync,
+  readdirSync,
+} from "node:fs";
 import { Capability } from "../src/core/artifact.js";
 import { Catalog } from "../src/server/catalog.js";
 import { replay } from "../src/replay/executor.js";
@@ -28,42 +35,99 @@ const catalog = new Catalog("artifacts").load();
 const baseline = catalog.find("cu.member.read_savings_balance")!.capability;
 
 // Preserve the most recent genuine discovery run, drop the rest.
-const discoveryRuns = readdirSync(EV).filter((d) => d.startsWith("discovery-")).sort();
+const discoveryRuns = readdirSync(EV)
+  .filter((d) => d.startsWith("discovery-"))
+  .sort();
 const keep = discoveryRuns[discoveryRuns.length - 1];
 for (const d of readdirSync(EV)) {
   if (d === keep || d === "README.md") continue;
   rmSync(`${EV}/${d}`, { recursive: true, force: true });
 }
 if (keep && keep !== "01-discovery-llm-run") {
-  if (existsSync(`${EV}/01-discovery-llm-run`)) rmSync(`${EV}/01-discovery-llm-run`, { recursive: true, force: true });
+  if (existsSync(`${EV}/01-discovery-llm-run`))
+    rmSync(`${EV}/01-discovery-llm-run`, { recursive: true, force: true });
   renameSync(`${EV}/${keep}`, `${EV}/01-discovery-llm-run`);
 }
 
-type Case = { dir: string; label: string; inputs: Record<string, unknown>; cap: Capability; expect: string };
+type Case = {
+  dir: string;
+  label: string;
+  inputs: Record<string, unknown>;
+  cap: Capability;
+  expect: string;
+};
 const cases: Case[] = [
-  { dir: "02-replay-success", label: "happy path", cap: baseline, inputs: { memberId: "100001" }, expect: "success" },
-  { dir: "03-replay-business-outcome", label: "no such member", cap: baseline, inputs: { memberId: "999999" }, expect: "outcome" },
-  { dir: "04-replay-permission-denied", label: "permission denied", cap: baseline, inputs: { memberId: "200001" }, expect: "outcome" },
-  { dir: "05-replay-recovered-interstitial", label: "unexpected interstitial, recovered", cap: baseline, inputs: { memberId: "200002" }, expect: "success" },
-  { dir: "06-replay-hard-failure", label: "application error", cap: baseline, inputs: { memberId: "200004" }, expect: "failed" },
-  { dir: "07-replay-input-rejected", label: "malformed input, rejected before launch", cap: baseline, inputs: { memberId: "12345" }, expect: "failed" },
+  {
+    dir: "02-replay-success",
+    label: "happy path",
+    cap: baseline,
+    inputs: { memberId: "100001" },
+    expect: "success",
+  },
+  {
+    dir: "03-replay-business-outcome",
+    label: "no such member",
+    cap: baseline,
+    inputs: { memberId: "999999" },
+    expect: "outcome",
+  },
+  {
+    dir: "04-replay-permission-denied",
+    label: "permission denied",
+    cap: baseline,
+    inputs: { memberId: "200001" },
+    expect: "outcome",
+  },
+  {
+    dir: "05-replay-recovered-interstitial",
+    label: "unexpected interstitial, recovered",
+    cap: baseline,
+    inputs: { memberId: "200002" },
+    expect: "success",
+  },
+  {
+    dir: "06-replay-hard-failure",
+    label: "application error",
+    cap: baseline,
+    inputs: { memberId: "200004" },
+    expect: "failed",
+  },
+  {
+    dir: "07-replay-input-rejected",
+    label: "malformed input, rejected before launch",
+    cap: baseline,
+    inputs: { memberId: "12345" },
+    expect: "failed",
+  },
 ];
 
 const rows: string[] = [];
 for (const c of cases) {
   rmSync(`${EV}/${c.dir}`, { recursive: true, force: true });
-  const r = await replay(c.cap, { mode: "replay_unattended", inputs: c.inputs, secrets, evidenceDir: EV });
+  const r = await replay(c.cap, {
+    mode: "replay_unattended",
+    inputs: c.inputs,
+    secrets,
+    evidenceDir: EV,
+  });
   // The logger names the directory by runId; rename to something a reviewer can read.
-  const produced = readdirSync(EV).filter((d) => d.startsWith("replay-")).sort();
+  const produced = readdirSync(EV)
+    .filter((d) => d.startsWith("replay-"))
+    .sort();
   const last = produced[produced.length - 1];
   if (last) renameSync(`${EV}/${last}`, `${EV}/${c.dir}`);
   const detail =
-    r.status === "success" ? JSON.stringify(r.outputs)
-    : r.status === "outcome" ? r.outcome.code
-    : r.status === "failed" ? r.failure.code
-    : "";
+    r.status === "success"
+      ? JSON.stringify(r.outputs)
+      : r.status === "outcome"
+        ? r.outcome.code
+        : r.status === "failed"
+          ? r.failure.code
+          : "";
   const ok = r.status === c.expect ? "ok" : `UNEXPECTED (wanted ${c.expect})`;
-  rows.push(`| \`${c.dir}\` | ${c.label} | \`${r.status}\` | ${detail} | ${ok} |`);
+  rows.push(
+    `| \`${c.dir}\` | ${c.label} | \`${r.status}\` | ${detail} | ${ok} |`,
+  );
   console.log(`${c.dir.padEnd(34)} ${r.status.padEnd(8)} ${detail}`);
 }
 

@@ -35,16 +35,6 @@ export function useLocalStorage<T>(
   return [value, set];
 }
 
-export type Theme = "light" | "dark";
-
-export function useTheme(): [Theme, (t: Theme) => void] {
-  const [theme, setTheme] = useLocalStorage<Theme>("dex.theme", "light");
-  useEffect(() => {
-    document.documentElement.dataset.theme = theme;
-  }, [theme]);
-  return [theme, setTheme];
-}
-
 /**
  * Poll an async source, with a pause control.
  *

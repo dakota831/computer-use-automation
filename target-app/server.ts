@@ -10,6 +10,7 @@ import {
   errorBox,
   warnBox,
   esc,
+  crestSvg,
 } from "./render.js";
 
 /**
@@ -82,9 +83,50 @@ function expired(t: Tenant, res: Response) {
 
 // ---------------------------------------------------------------- shell + login
 
+/** Per-tenant favicon, drawn from the same crest as the brand bar. */
+app.get("/t/:tenant/favicon.svg", (req, res) => {
+  const t = tenantOf(req);
+  res.type("image/svg+xml").send(crestSvg(t));
+});
+
+/**
+ * The application shell.
+ *
+ * Which inner page it frames is decided from session state, so signing in is a
+ * real full-page transition - the way this class of software actually behaves -
+ * and the brand bar can show who is signed in.
+ */
 app.get("/t/:tenant", (req, res) => {
   const t = tenantOf(req);
-  res.send(shell(t, `${base(t)}/frame/login`, "Sign In"));
+  const s = sessionOf(req);
+  if (!s) {
+    return res.send(
+      shell(t, {
+        innerPath: `${base(t)}/frame/login`,
+        title: "Sign In",
+        crumbs: ["Sign In"],
+      }),
+    );
+  }
+  if (t.postLoginAcknowledgement && !s.ackDone) {
+    return res.send(
+      shell(t, {
+        innerPath: `${base(t)}/frame/ack`,
+        title: "Acknowledgement",
+        crumbs: ["Acceptable Use"],
+        teller: s.user,
+      }),
+    );
+  }
+  return res.send(
+    shell(t, {
+      innerPath: `${base(t)}/frame/search`,
+      title: "Member Lookup",
+      active: "members",
+      crumbs: ["Members", "Lookup"],
+      teller: s.user,
+    }),
+  );
 });
 
 app.get("/t/:tenant/frame/login", (req, res) => {
@@ -96,7 +138,7 @@ app.get("/t/:tenant/frame/login", (req, res) => {
       panel(
         "Teller Sign In",
         `${err}
-      <form method="post" action="${base(t)}/login">
+      <form method="post" action="${base(t)}/login" target="_top">
         <table>
           ${fieldRow("User ID", `${t.controlPrefix}txtUser`)}
           ${fieldRow("Password", `${t.controlPrefix}txtPass`, "password")}
@@ -123,12 +165,9 @@ app.post("/t/:tenant/login", (req, res) => {
     ackDone: false,
   });
   res.setHeader("Set-Cookie", `sid=${sid}; Path=/; HttpOnly; SameSite=Lax`);
-  // Summit interposes an acknowledgement screen; First Community does not.
-  res.redirect(
-    t.postLoginAcknowledgement
-      ? `${base(t)}/frame/ack`
-      : `${base(t)}/frame/search`,
-  );
+  // Back to the shell, which now renders signed in. Summit interposes an
+  // acknowledgement screen at that point; First Community does not.
+  res.redirect(base(t));
 });
 
 /** Per-tenant interstitial. A recoverable condition the capability must dismiss. */
@@ -141,7 +180,7 @@ app.get("/t/:tenant/frame/ack", (req, res) => {
       panel(
         "Acceptable Use Acknowledgement",
         `${warnBox("Access to member records is monitored. Acknowledge to continue.")}
-       <form method="post" action="${base(t)}/ack">
+       <form method="post" action="${base(t)}/ack" target="_top">
          <input type="submit" name="${t.controlPrefix}btnAck" value="I Acknowledge">
        </form>`,
       ),
@@ -154,7 +193,7 @@ app.post("/t/:tenant/ack", (req, res) => {
   const s = sessionOf(req);
   if (!s) return expired(t, res);
   s.ackDone = true;
-  res.redirect(`${base(t)}/frame/search`);
+  res.redirect(base(t));
 });
 
 // ---------------------------------------------------------------- search
