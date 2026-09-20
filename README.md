@@ -101,6 +101,26 @@ calls the field "Member Number", labels the button "Find", and interposes an
 acceptable-use screen after sign-in. The run log shows the acknowledgement being recovered
 and the member field resolving via its *fallback* strategy — drift visible before failure.
 
+### Teaching and reviewing capabilities
+
+The console is where the draft → approved gate is actually passed:
+
+- **Teach new** (`/capabilities/new`) runs a discovery pass against a goal you type, and
+  saves the result as a draft. Discovery has its own allowlist, separate from console
+  auth — pointing an LLM-driven browser at an arbitrary URL is a distinct privilege.
+- **Edit** on a capability opens its JSON, validated on save against the same schema the
+  replay engine parses with. Bump `version` to write a new artifact instead of
+  overwriting one already in production.
+- **Approve** flips a reviewed draft to `approved`, which is what unattended replay
+  requires. Reversible: pulling it back to draft stops unattended runs immediately.
+- **Compare** diffs two capabilities. `cu.member.lookup_savings@1.0.0` is exactly what
+  the model emitted (draft, no outcomes); `@1.1.0` is the same flow after review
+  (approved, with an outcome rule). The diff is what human review contributed.
+
+The loop in one line: the draft returned `CHECKPOINT_FAILED` for a missing member; after
+a reviewer added one outcome rule it returns `MEMBER_NOT_FOUND`, and once approved it
+runs unattended and appears in the callable tool catalog.
+
 ```bash
 npm run evidence     # regenerate /evidence/ from scratch
 npm test             # 42 unit tests

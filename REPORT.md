@@ -356,7 +356,8 @@ itself.
   approval gate exists to force.
 - **Turning a handoff into an amendment.** Human actions during an intervention are already
   recorded in the same shape as automation actions, so the obvious next step is proposing
-  them as a patch to the capability. The data is captured; the diff/review flow is not built.
+  them as a patch to the capability. The data is captured; that specific flow is not built —
+  though editing and re-approving a capability now is (see below).
 - **Per-operator identity.** A string today; an SSO subject in production.
 - **Generated API types.** The console mirrors the server contract by hand. Generating both
   from the same Zod schemas would remove a drift risk.
@@ -365,10 +366,15 @@ itself.
 
 **What I would build next, in order:**
 
-1. **Outcome authoring from evidence.** After a failed replay, offer the observed screen as
-   a candidate outcome rule for a human to name and classify. It closes the single biggest
-   gap between a discovered draft and an approved capability, and the failure evidence
-   already contains everything needed.
+1. **Outcome authoring from evidence.** The manual half of this now exists: the console
+   runs discovery, edits capabilities against the live schema, and approves them, and the
+   compare view diffs a discovered draft against its reviewed version. Demonstrated
+   end to end — the agent's draft returned `CHECKPOINT_FAILED` for a missing member, a
+   reviewer added one outcome rule, and it returns `MEMBER_NOT_FOUND`; approving it then
+   permits unattended invocation. What remains is the *suggestion* step: after a failed
+   replay, offer the observed screen as a candidate outcome rule to name and classify,
+   rather than making the reviewer write it. The failure evidence already contains
+   everything needed.
 2. **Cross-tenant verification.** Replay every capability against every tenant on a schedule
    and report which resolved via fallback strategies. Drift becomes a dashboard rather than
    an incident, and the data is already in the run logs.
