@@ -19,7 +19,9 @@
     "format:check": "prettier --check .",
     "evidence": "tsx scripts/generate-evidence.ts",
     "visual": "node scripts/visual-check.mjs",
-    "interaction": "node scripts/interaction-check.mjs"
+    "interaction": "node scripts/interaction-check.mjs",
+    "doc-check": "node scripts/doc-check.mjs",
+    "check": "npm run typecheck && npm test && npm run doc-check"
   },
   "dependencies": {
     "clsx": "^2.1.1",

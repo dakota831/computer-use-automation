@@ -6,6 +6,42 @@ the moment of the decision rather than reconstructed afterwards.
 
 ---
 
+## Index
+
+Newest entries are at the bottom of the file; this index groups them by subject.
+
+**Foundations**  
+[D1](#d1--typescript-single-package) typescript, single package  ·  [D2](#d2--perception-is-the-accessibility-tree-over-cdp-not-the-dom) perception is the accessibility tree over cdp, not the dom  ·  [D3](#d3--nvidia-nim-as-the-model-provider) nvidia nim as the model provider
+
+**The artifact and how controls are found**  
+[D4](#d4--locator-strategies-are-ranked-and-ambiguity-is-a-failure) locator strategies are ranked, and ambiguity is a failure  ·  [D5](#d5--one-assertion-vocabulary-for-checkpoints-success-and-error-detection) one assertion vocabulary for checkpoints, success, and error detection  ·  [D11](#d11--the-surface-seam-and-a-bug-that-proves-why-geometry-is-not-a-locator) the surface seam, and a bug that proves why geometry is not a locator  ·  [D21](#d21--visual-realism-and-machine-hostility-are-independent-axes) visual realism and machine hostility are independent axes
+
+**Replay, errors and determinism**  
+[D9](#d9--a-business-outcome-is-not-throwable) a business outcome is not throwable  ·  [D12](#d12--after-an-action-wait-for-a-recognised-state-not-just-the-expected-one) after an action, wait for a *recognised* state, not just the expected one  ·  [D32](#d32--the-session-clock-became-a-checkpoint) the session clock became a checkpoint
+
+**Safety and risk**  
+[D6](#d6--risk-is-classified-at-record-time-not-replay-time) risk is classified at record time, not replay time  ·  [D8](#d8--redaction-happens-on-the-write-path-not-at-call-sites) redaction happens on the write path, not at call sites  ·  [D10](#d10--policy-is-checked-before-every-action-and-enforced-twice) policy is checked before every action, and enforced twice  ·  [D14](#d14--the-model-never-sees-a-credential) the model never sees a credential  ·  [D31](#d31--what-a-line-by-line-review-turned-up) what a line-by-line review turned up
+
+**Discovery and the review loop**  
+[D15](#d15--a-discovered-capability-is-always-a-draft) a discovered capability is always a draft  ·  [D16](#d16--two-recorder-bugs-the-first-real-run-exposed) two recorder bugs the first real run exposed  ·  [D17](#d17--provider-quirks-belong-at-the-adapter-boundary) provider quirks belong at the adapter boundary  ·  [D26](#d26--making-the-nav-real-broke-the-agent-and-that-was-worth-knowing) making the nav real broke the agent, and that was worth knowing  ·  [D28](#d28--the-review-loop-is-operable-which-is-what-makes-the-draft-gate-real) the review loop is operable, which is what makes the draft gate real  ·  [D34](#d34--two-gaps-the-brief-caught-that-i-had-not) two gaps the brief caught that i had not
+
+**Escalation and control transfer**  
+[D18](#d18--the-control-lease-and-why-automation-parks-rather-than-stops) the control lease, and why automation parks rather than stops  ·  [D19](#d19--approving-a-risky-step-is-not-the-same-as-doing-it) approving a risky step is not the same as doing it  ·  [D24](#d24--an-escalation-nobody-answers-needs-a-bounded-outcome) an escalation nobody answers needs a bounded outcome
+
+**Multi-tenant**  
+[D25](#d25--cross-tenant-reuse-demonstrated-rather-than-argued) cross-tenant reuse, demonstrated rather than argued
+
+**Interface and operations**  
+[D20](#d20--reversing-d-nothing-the-console-needed-a-real-router) reversing d-nothing: the console needed a real router  ·  [D22](#d22--one-theme) one theme  ·  [D23](#d23--the-mobile-overflow-was-a-flexgrid-default-not-a-styling-mistake) the mobile overflow was a flex/grid default, not a styling mistake  ·  [D29](#d29--jump-to-next-anomaly-and-comparing-capabilities) jump-to-next-anomaly, and comparing capabilities  ·  [D30](#d30--min-width-auto-cost-me-four-attempts-so-here-is-the-rule) `min-width: auto` cost me four attempts, so here is the rule  ·  [D33](#d33--not-secure-was-never-the-certificate) "not secure" was never the certificate  ·  [D35](#d35--a-shared-footer-with-relative-links-pointed-at-the-wrong-site) a shared footer with relative links pointed at the wrong site  ·  [D36](#d36--dead-and-mis-named-npm-scripts) dead and mis-named npm scripts
+
+**Measurements and mistakes worth keeping**  
+[D7](#d7--measured-against-the-real-target-app-not-assumed) measured against the real target app, not assumed  ·  [D13](#d13--two-silent-patch-failures-and-what-they-cost) two silent patch failures, and what they cost  ·  [D27](#d27--the-evidence-generator-deleted-the-evidence-it-was-meant-to-protect) the evidence generator deleted the evidence it was meant to protect
+
+**Also**  
+[D37](#d37--documentation-is-checked-not-proofread) documentation is checked, not proofread  ·  [D38](#d38--reportmd-was-twice-the-length-the-brief-asked-for) report.md was twice the length the brief asked for
+
+---
+
 ## D1 — TypeScript, single package
 
 Single npm package with enforced module boundaries under `src/`, not a monorepo.
@@ -666,3 +702,37 @@ both the README and the CLI's own `serve` command. Renaming it exposed a third p
 There is now a check that every `npm:` reference inside `dev` resolves to a real script,
 and the whole documented command list is verified to exist. A README command nobody has
 run is a broken command, and the only way to know is to run it.
+
+## D37 — Documentation is checked, not proofread
+
+`scripts/doc-check.mjs` verifies the docs against the repository they describe: every
+repo-relative link and inline path resolves, every `npm run …` a reader might type exists,
+the cited test count matches a real run, every capability named in the README has an
+artifact, every evidence directory described is present, and every embedded screenshot
+exists.
+
+It found two drifts immediately — the README claimed 68 unit tests when there were 72, and
+it had been pointing at `npm run serve` while the script was still named `server`. Neither
+is visible by reading; both are obvious to a script.
+
+`DECISIONS.md` is exempted from the command check. It is a changelog and legitimately
+names things that were removed — "`npm run operator` invoked a command that no longer
+exists" is accurate prose, not a broken instruction. That exemption is the kind of thing
+worth writing down, because the alternative is quietly weakening the check for everyone.
+
+The index at the top of this file is generated by `scripts/decisions-index.mjs` from its
+own headings. A hand-kept index that drifts is worse than none, because it sends a reader
+to the wrong place.
+
+## D38 — REPORT.md was twice the length the brief asked for
+
+The brief asks for roughly one to three pages. The write-up had reached 3,445 words, call
+it six or seven. Reviewers read these side by side, and overlong is its own signal.
+
+Trimmed to 2,343 words with all seven required headings intact and no argument dropped.
+What went was narrative: the long-form account of each bug now lives only in this file,
+which is explicitly the long-form log, and REPORT cites the decision instead of retelling
+it. Measurements stayed, because they are what make the claims checkable rather than
+assertions.
+
+The split is now clean: REPORT is the argument, DECISIONS is the evidence and the history.

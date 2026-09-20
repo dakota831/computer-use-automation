@@ -245,15 +245,21 @@ app.get("/api/interventions/:id", (req, res) => {
 });
 
 app.post("/api/interventions/:id/take", (req, res) => {
+  const id = String(req.params.id);
+  // "does not exist" and "exists but cannot be taken" are different answers and
+  // deserve different codes; collapsing both into 409 tells a caller nothing.
+  if (!interventions.get(id))
+    return res.status(404).json({ error: "no such intervention" });
   try {
-    const actor = String(req.body?.actor ?? "operator");
-    res.json(interventions.take(String(req.params.id), actor));
+    res.json(interventions.take(id, String(req.body?.actor ?? "operator")));
   } catch (e) {
     res.status(409).json({ error: String(e) });
   }
 });
 
 app.post("/api/interventions/:id/release", (req, res) => {
+  if (!interventions.get(String(req.params.id)))
+    return res.status(404).json({ error: "no such intervention" });
   try {
     const actor = String(req.body?.actor ?? "operator");
     const action = String(req.body?.action ?? "resume");
