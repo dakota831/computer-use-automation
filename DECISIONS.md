@@ -38,7 +38,7 @@ Newest entries are at the bottom of the file; this index groups them by subject.
 [D7](#d7--measured-against-the-real-target-app-not-assumed) measured against the real target app, not assumed · [D13](#d13--two-silent-patch-failures-and-what-they-cost) two silent patch failures, and what they cost · [D27](#d27--the-evidence-generator-deleted-the-evidence-it-was-meant-to-protect) the evidence generator deleted the evidence it was meant to protect
 
 **Also**  
-[D37](#d37--documentation-is-checked-not-proofread) documentation is checked, not proofread · [D38](#d38--reportmd-was-twice-the-length-the-brief-asked-for) report.md was twice the length the brief asked for · [D39](#d39--making-template-references-hard-to-get-wrong) making template references hard to get wrong · [D40](#d40--authoring-rewritten-for-the-person-who-actually-does-it) authoring, rewritten for the person who actually does it · [D41](#d41--a-timeout-that-was-only-ever-a-report) a timeout that was only ever a report · [D42](#d42--the-build-and-the-deploy-were-two-steps-and-they-drifted) the build and the deploy were two steps, and they drifted
+[D37](#d37--documentation-is-checked-not-proofread) documentation is checked, not proofread · [D38](#d38--reportmd-was-twice-the-length-the-brief-asked-for) report.md was twice the length the brief asked for · [D39](#d39--making-template-references-hard-to-get-wrong) making template references hard to get wrong · [D40](#d40--authoring-rewritten-for-the-person-who-actually-does-it) authoring, rewritten for the person who actually does it · [D41](#d41--a-timeout-that-was-only-ever-a-report) a timeout that was only ever a report · [D42](#d42--the-build-and-the-deploy-were-two-steps-and-they-drifted) the build and the deploy were two steps, and they drifted · [D43](#d43--giving-the-application-something-worth-guarding) giving the application something worth guarding · [D44](#d44--the-gate-was-guarding-the-doorway-not-the-transaction) the gate was guarding the doorway, not the transaction · [D45](#d45--discovery-can-now-ask-because-somebody-is-there-to-answer) discovery can now ask, because somebody is there to answer · [D46](#d46--a-literal-that-is-really-a-mangled-parameter) a literal that is really a mangled parameter · [D47](#d47--two-callers-two-answers-one-of-them-by-luck) two callers, two answers, one of them by luck · [D48](#d48--two-bugs-the-new-write-action-exposed-in-the-recorder) two bugs the new write action exposed in the recorder · [D49](#d49--what-the-mobile-sweep-is-entitled-to-assert) what the mobile sweep is entitled to assert
 
 ---
 
@@ -879,3 +879,180 @@ repository and said nothing about the deployment.
 sweep is run against `https://console.dexdash.cloud` — the real host, over TLS, through
 basic auth — rather than only the loopback port. Testing the loopback tests the build;
 testing the URL tests the deploy.
+
+## D43 — Giving the application something worth guarding
+
+The teller app had one write action, _Open Sub-Account_, and it opened an account with
+no money in it. Everything else was a read. That made the risk machinery hard to take
+seriously: a policy engine that classifies actions as irreversible, an approval gate
+that blocks unattended replay of drafts, and a human-handoff protocol, all guarding a
+lookup. It also meant an operator who wanted to teach a fee deduction simply could not,
+which is how this started.
+
+So the app now has a posting screen: account, entry type, amount, description, confirm,
+and a receipt with a reference and the resulting balance. It moves money, it is not
+reversible from any screen, and it refuses in four distinct ways — no such account, the
+account is not open, the amount is not positive, and the member's records are
+restricted. The restricted case needed a new fixture account: without one the lookup
+failed first and the screen answered "no such account", so the permission path had never
+been reachable. An exceptional state that cannot be reached is not covered, it is only
+claimed.
+
+**Seed and ledger are kept apart.** Postings go to an in-memory ledger and every balance
+the application renders is the seed folded with what has been posted against it. That is
+what lets the write be genuinely irreversible for a teller while the committed evidence
+stays reproducible: `resetLedger()` returns everything to seed, and both the replay
+matrix and the evidence generator call it before they measure anything. The member record
+and the account register fold the same ledger, because two screens that disagree about a
+balance would be a bug no real core system has.
+
+## D44 — The gate was guarding the doorway, not the transaction
+
+Teaching the fee capability worked, and then the run log showed what the policy engine
+had actually done:
+
+```
+step 6  click -> irreversible  confirm     <- the "Post Adjustment" link
+step 9  click -> risky         allow       <- the "Confirm" button that posts the fee
+```
+
+`classifyActionRisk` judged a control by its own label and nothing else. "Post Adjustment"
+matched _post_ and was gated as irreversible — but that link only opens a form, and
+nothing has happened yet. The button that actually moves the money says "Confirm", which
+matched only the committing list, and was waved through. The gate stopped the agent at
+the doorway and ignored the transaction.
+
+This is not a tuning problem. A label alone cannot distinguish "Confirm" on a preferences
+page from "Confirm" on a posting screen; the information needed is on the screen, not on
+the control. So a committing control now inherits the consequence of the screen it
+commits, and the classifier takes the surrounding title and text. Navigation is
+deliberately _not_ promoted this way — moving around a dangerous screen is not itself
+dangerous, and promoting every click on it would make the gate fire so often that an
+operator would learn to click through it.
+
+It was already the case that both the recorder and the discovery loop shared this
+function, which is the only reason one fix covered the gate and the recorded artifact.
+
+## D45 — Discovery can now ask, because somebody is there to answer
+
+With the gate corrected, discovery could not learn the capability at all: the step it
+needed was irreversible, and discovery refused every irreversible step on the grounds
+that it runs unattended. That is true of `npm run discover`. It is false of discovery
+started from the console, where an operator is watching a progress panel — and refusing
+there does not make the system safer, it makes it unable to learn exactly the operations
+that most deserve a reviewed capability wrapped around them.
+
+So a confirmation during discovery is now an ordinary intervention. Same registry, same
+console screen, same live-session handoff that replay has always used: the run parks on
+an un-awaited promise, the operator sees what the agent wants to do and why policy
+stopped, and approving resumes the run on the same session with the step recorded like
+any other. Only `resume` means go ahead — if the operator performed the step themselves,
+repeating it would post the entry twice. With no hook supplied the old refusal stands, so
+the CLI is unchanged.
+
+Making the registry serve both callers meant `raise()` taking the eight fields it actually
+reads rather than an `EscalationContext`. Replay has a parsed Capability and a Step to
+hand; discovery has neither, because it is in the middle of producing the first one. The
+test fixture that used to fake a context with three `as any` casts now needs none.
+
+The progress panel distinguishes parked from thinking. A spinner on a run that is waiting
+for you is a lie, and the run would sit there until the escalation timed out.
+
+## D46 — A literal that is really a mangled parameter
+
+The first artifact recorded through the new flow contained this step:
+
+```
+s12_type   type   '100001-S0'   risk=safe
+```
+
+The account number supplied for that run was `0001-100001-S0`. The model typed a
+fragment of it while casting around, and `templatize` — which matches a typed value
+_exactly_ — found no match and recorded the fragment as a constant. As recorded, that
+capability types one particular run's data on every future run.
+
+This is the worst shape a bug can take here: it replays cleanly and does the wrong thing,
+so nothing downstream detects it. Checkpoints were already guarded against per-run values
+after an earlier incident; action values were not, which is the same lesson arriving at a
+second call site.
+
+A literal sharing five or more characters with a supplied value is now flagged on the
+step. Deliberate constants do not overlap an account number, so "Maintenance Fee" does
+not fire. The step is still recorded and still replayable — this is a reason not to
+approve the draft, not a reason to throw away an eighteen-step run — and the console
+shows it during review, which is where a draft was always going to have to pass.
+
+## D47 — Two callers, two answers, one of them by luck
+
+With the classifier reading screen context, the run log still showed the gate allowing the
+Confirm click — while the artifact the same run produced recorded that step as
+irreversible. The same function, disagreeing with itself across two call sites.
+
+Two causes, both worth keeping.
+
+**The context was the page furniture.** I had passed `observation.text.slice(0, 400)`.
+This application renders a persistent shell — crest, nav, breadcrumbs, teller name —
+around an inner content frame, and the shell runs well past four hundred characters. The
+classifier was being handed the furniture and never reached the screen. Both call sites
+now use one `screenText()` helper that takes the content frame's own text, falling back
+to the whole observation when there is no child frame. Sharing the helper is the point:
+two definitions of "the screen" would drift apart exactly the way these two call sites
+just did.
+
+**The recorder was right for the wrong reason.** It classifies on
+`` `${label} ${intent}` `` — the model's own sentence is part of the text being matched —
+and the model had written "Confirm and post the fee entry", so _post_ matched and the
+step came out irreversible. Had it written "Submit the form", the same action would have
+been recorded as merely risky. A risk classification that depends on the model's choice
+of verb is not a control; it is a coincidence that happens to be load-bearing. The intent
+is still a useful signal and still contributes, but the screen is now what decides, and
+the screen is not something the model writes.
+
+The general lesson is the one from the frame-offset bug and the detector round-trip: when
+two places compute the same thing from different inputs, the one you are not looking at
+is the one that is wrong.
+
+## D48 — Two bugs the new write action exposed in the recorder
+
+Teaching the fee capability produced an artifact whose first step was:
+
+```
+s1_type   type   {{secret:corelink.password}}   <- into the User ID field
+```
+
+`templatize` recovered the placeholder by reverse-mapping the substituted value, and the
+fixture's username and password are both `admin`, so the map kept whichever was inserted
+last and both credential steps came out as the password. It replayed perfectly — against
+a fixture where the two values are equal — and would have failed against any real pair.
+
+The template was never lost; it was simply not carried. The discovery loop already had
+`{{secret:corelink.username}}` in hand and logged it, then pushed only the substituted
+value into the recorded action. Carrying the template removes the inference instead of
+improving it, and value-matching stays as the fallback for actions that have no template,
+such as a navigation URL. A test now asserts that two secrets sharing a value stay
+distinct, and that no secret's literal reaches the artifact.
+
+The same run produced the second bug, described in [D46](#d46--a-literal-that-is-really-a-mangled-parameter):
+a typed literal that was really a fragment of a supplied parameter. Both are the same
+mistake at different call sites — reconstructing an input from its output — and both were
+invisible because the artifact replayed cleanly.
+
+## D49 — What the mobile sweep is entitled to assert
+
+Adding the posting screen to the visual sweep produced four mobile failures at 630px
+against a 390px viewport. Measuring the rest of the application first was what made the
+result meaningful: every panel overflows — 670px for search, the member record and the
+sub-account form, 910px for both registers — and the new screen is the narrowest of them.
+The sweep had simply never pointed at a `/frame/` URL before.
+
+So this was not a regression, and "fixing" it would have been the wrong instinct twice
+over. A `/frame/` URL is one panel, not a page; what a person opens is the shell, which
+embeds the panel in a scrolling iframe and passes the mobile check like every other
+route. And the fixed-width nested tables are the fixture's entire purpose — they are what
+the targeting engine exists to cope with. Making them responsive would have made the
+target less representative of the software this system is meant to drive.
+
+The overflow rule is now scoped to pages rather than panels, with the measurements
+recorded at the waiver so the next person can see it was a decision and not an oversight.
+Console errors and screenshots still apply to the panels, which is what those entries are
+for.

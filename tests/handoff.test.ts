@@ -1,24 +1,24 @@
 import { describe, it, expect } from "vitest";
 import { ControlLease } from "../src/server/lease.js";
 import { InterventionRegistry } from "../src/server/interventions.js";
-import type { EscalationContext } from "../src/replay/executor.js";
 
 /** Minimal stand-ins: the control-transfer model does not depend on a real browser. */
-const ctx = (): EscalationContext =>
-  ({
-    runId: "run-1",
-    capability: { id: "cu.test", title: "Test capability" } as any,
-    step: { id: "s9_confirm", intent: "Submit the form" } as any,
-    reason: 'step is classified "irreversible"',
-    observation: {
-      url: "http://app/t/x",
-      frames: [],
-      nodes: [],
-      text: "",
-      title: "",
-      capturedAt: "",
-    } as any,
-  }) as EscalationContext;
+/**
+ * What a caller passes to `raise`.
+ *
+ * This used to fake a whole EscalationContext with three `as any` casts,
+ * because the registry took one. It reads the eight fields below and nothing
+ * else, so it now asks for those - and the fixture needs no casts at all.
+ */
+const ctx = () => ({
+  runId: "run-1",
+  capabilityId: "cu.test",
+  goal: "Test capability",
+  stepId: "s9_confirm",
+  stepIntent: "Submit the form",
+  reason: 'step is classified "irreversible"',
+  url: "http://app/t/x",
+});
 
 const surface = {} as any;
 
@@ -82,7 +82,7 @@ describe("InterventionRegistry", () => {
     const reg = new InterventionRegistry();
     const lease = new ControlLease("s1");
     const { intervention, decided } = reg.raise({
-      ctx: ctx(),
+      ...ctx(),
       surface,
       lease,
       version: "1.0.0",
@@ -105,7 +105,7 @@ describe("InterventionRegistry", () => {
   it("distinguishes approving a step from performing it", async () => {
     const reg = new InterventionRegistry();
     const { intervention, decided } = reg.raise({
-      ctx: ctx(),
+      ...ctx(),
       surface,
       lease: new ControlLease("s"),
       version: "1.0.0",
@@ -121,7 +121,7 @@ describe("InterventionRegistry", () => {
   it("records operator actions for the audit trail", () => {
     const reg = new InterventionRegistry();
     const { intervention } = reg.raise({
-      ctx: ctx(),
+      ...ctx(),
       surface,
       lease: new ControlLease("s"),
       version: "1.0.0",
@@ -143,7 +143,7 @@ describe("InterventionRegistry", () => {
     const reg = new InterventionRegistry();
     const lease = new ControlLease("s1");
     const { intervention, decided } = reg.raise({
-      ctx: ctx(),
+      ...ctx(),
       surface,
       lease,
       version: "1.0.0",
@@ -164,7 +164,7 @@ describe("InterventionRegistry", () => {
   it("cancels the abandon timer once a human resolves it", async () => {
     const reg = new InterventionRegistry();
     const { intervention, decided } = reg.raise({
-      ctx: ctx(),
+      ...ctx(),
       surface,
       lease: new ControlLease("s"),
       version: "1.0.0",

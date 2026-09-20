@@ -1,0 +1,825 @@
+{
+  "schemaVersion": "1.0.0",
+  "id": "cu.member.post_maintenance_fee",
+  "version": "1.0.0",
+  "title": "Post a maintenance fee",
+  "description": "Signs in, finds a member, posts a fee to one of their accounts and reads back the reference and resulting balance.",
+  "status": "draft",
+  "surface": {
+    "kind": "web",
+    "entryPoint": "http://127.0.0.1:8080/t/firstcu",
+    "appProfile": {
+      "vendorApp": "corelink-teller",
+      "versionRange": "*"
+    }
+  },
+  "tenant": "base",
+  "tenantOverrides": {},
+  "inputs": [
+    {
+      "name": "memberId",
+      "type": "string",
+      "required": true,
+      "description": "memberId supplied per invocation.",
+      "sensitivity": "pii",
+      "example": "100001"
+    },
+    {
+      "name": "accountNumber",
+      "type": "string",
+      "required": true,
+      "description": "accountNumber supplied per invocation.",
+      "sensitivity": "pii",
+      "example": "0001-100001-S0"
+    },
+    {
+      "name": "amount",
+      "type": "string",
+      "required": true,
+      "description": "amount supplied per invocation.",
+      "sensitivity": "pii",
+      "example": "0.99"
+    }
+  ],
+  "outputs": [
+    {
+      "name": "reference",
+      "type": "string",
+      "description": "Capture the posted entry reference number",
+      "sensitivity": "pii",
+      "source": {
+        "describedAs": "the reference value",
+        "framePath": [
+          {
+            "name": "mainFrame",
+            "urlPattern": "/t/firstcu/frame/adjustment",
+            "index": 1
+          }
+        ],
+        "strategies": [
+          {
+            "strategy": {
+              "kind": "role_name",
+              "role": "LayoutTableCell",
+              "name": "ADJ-7201",
+              "nameMatch": "normalized",
+              "aliases": []
+            },
+            "confidence": 0.9,
+            "rationale": "control has a real accessible name"
+          },
+          {
+            "strategy": {
+              "kind": "label_proximity",
+              "labelText": "Reference:",
+              "labelMatch": "normalized",
+              "relation": "right_of",
+              "controlRole": "LayoutTableCell"
+            },
+            "confidence": 0.75,
+            "rationale": "secondary: the right_of label reads \"Reference:\""
+          },
+          {
+            "strategy": {
+              "kind": "nth_of_role",
+              "role": "LayoutTableCell",
+              "index": 0
+            },
+            "confidence": 0.25,
+            "rationale": "positional last resort; replay logs loudly when it reaches this"
+          }
+        ],
+        "boundingBoxHint": {
+          "x": 149.0625,
+          "y": 158,
+          "width": 108.734375,
+          "height": 22
+        },
+        "ambiguityPolicy": "fail"
+      },
+      "transform": [
+        {
+          "op": "trim"
+        }
+      ]
+    },
+    {
+      "name": "resulting_balance",
+      "type": "number",
+      "description": "Capture the resulting balance after the fee was posted",
+      "sensitivity": "internal",
+      "source": {
+        "describedAs": "the resulting_balance value",
+        "framePath": [
+          {
+            "name": "mainFrame",
+            "urlPattern": "/t/firstcu/frame/adjustment-receipt",
+            "index": 1
+          }
+        ],
+        "strategies": [
+          {
+            "strategy": {
+              "kind": "role_name",
+              "role": "LayoutTableCell",
+              "name": "$8,213.56",
+              "nameMatch": "normalized",
+              "aliases": []
+            },
+            "confidence": 0.9,
+            "rationale": "control has a real accessible name"
+          },
+          {
+            "strategy": {
+              "kind": "label_proximity",
+              "labelText": "Resulting Balance:",
+              "labelMatch": "normalized",
+              "relation": "right_of",
+              "controlRole": "LayoutTableCell"
+            },
+            "confidence": 0.75,
+            "rationale": "secondary: the right_of label reads \"Resulting Balance:\""
+          },
+          {
+            "strategy": {
+              "kind": "nth_of_role",
+              "role": "LayoutTableCell",
+              "index": 0
+            },
+            "confidence": 0.25,
+            "rationale": "positional last resort; replay logs loudly when it reaches this"
+          }
+        ],
+        "boundingBoxHint": {
+          "x": 149.0625,
+          "y": 268,
+          "width": 108.734375,
+          "height": 22
+        },
+        "ambiguityPolicy": "fail"
+      },
+      "transform": [
+        {
+          "op": "trim"
+        },
+        {
+          "op": "strip",
+          "chars": "$,"
+        },
+        {
+          "op": "to_number"
+        }
+      ]
+    }
+  ],
+  "steps": [
+    {
+      "id": "s1_type",
+      "intent": "Enter the teller user ID to sign in",
+      "action": {
+        "type": "type",
+        "target": {
+          "describedAs": "Enter the teller user ID to sign in",
+          "framePath": [
+            {
+              "name": "mainFrame",
+              "urlPattern": "/t/firstcu/frame/login",
+              "index": 1
+            }
+          ],
+          "strategies": [
+            {
+              "strategy": {
+                "kind": "label_proximity",
+                "labelText": "User ID:",
+                "labelMatch": "normalized",
+                "relation": "right_of",
+                "controlRole": "textbox"
+              },
+              "confidence": 0.9,
+              "rationale": "control has no accessible name; its visible label is the right_of text \"User ID:\""
+            },
+            {
+              "strategy": {
+                "kind": "nth_of_role",
+                "role": "textbox",
+                "index": 0
+              },
+              "confidence": 0.25,
+              "rationale": "positional last resort; replay logs loudly when it reaches this"
+            }
+          ],
+          "boundingBoxHint": {
+            "x": 113.03125,
+            "y": 162,
+            "width": 202,
+            "height": 22
+          },
+          "ambiguityPolicy": "fail"
+        },
+        "value": "{{secret:corelink.username}}",
+        "clearFirst": true
+      },
+      "riskClass": "safe",
+      "outcomes": []
+    },
+    {
+      "id": "s2_type",
+      "intent": "Enter the teller password to sign in",
+      "action": {
+        "type": "type",
+        "target": {
+          "describedAs": "Enter the teller password to sign in",
+          "framePath": [
+            {
+              "name": "mainFrame",
+              "urlPattern": "/t/firstcu/frame/login",
+              "index": 1
+            }
+          ],
+          "strategies": [
+            {
+              "strategy": {
+                "kind": "label_proximity",
+                "labelText": "Password:",
+                "labelMatch": "normalized",
+                "relation": "right_of",
+                "controlRole": "textbox"
+              },
+              "confidence": 0.9,
+              "rationale": "control has no accessible name; its visible label is the right_of text \"Password:\""
+            },
+            {
+              "strategy": {
+                "kind": "nth_of_role",
+                "role": "textbox",
+                "index": 0
+              },
+              "confidence": 0.25,
+              "rationale": "positional last resort; replay logs loudly when it reaches this"
+            }
+          ],
+          "boundingBoxHint": {
+            "x": 113.03125,
+            "y": 192,
+            "width": 202,
+            "height": 22
+          },
+          "ambiguityPolicy": "fail"
+        },
+        "value": "{{secret:corelink.password}}",
+        "clearFirst": true
+      },
+      "riskClass": "safe",
+      "outcomes": []
+    },
+    {
+      "id": "s3_click",
+      "intent": "Submit the sign-in form to log in to the teller console",
+      "action": {
+        "type": "click",
+        "target": {
+          "describedAs": "Submit the sign-in form to log in to the teller console",
+          "framePath": [
+            {
+              "name": "mainFrame",
+              "urlPattern": "/t/firstcu/frame/login",
+              "index": 1
+            }
+          ],
+          "strategies": [
+            {
+              "strategy": {
+                "kind": "role_name",
+                "role": "button",
+                "name": "Sign In",
+                "nameMatch": "normalized",
+                "aliases": []
+              },
+              "confidence": 0.9,
+              "rationale": "control has a real accessible name"
+            },
+            {
+              "strategy": {
+                "kind": "label_proximity",
+                "labelText": "Sign In",
+                "labelMatch": "normalized",
+                "relation": "after",
+                "controlRole": "button"
+              },
+              "confidence": 0.75,
+              "rationale": "secondary: the adjacent label reads \"Sign In\""
+            },
+            {
+              "strategy": {
+                "kind": "nth_of_role",
+                "role": "button",
+                "index": 0
+              },
+              "confidence": 0.25,
+              "rationale": "positional last resort; replay logs loudly when it reaches this"
+            }
+          ],
+          "boundingBoxHint": {
+            "x": 113.03125,
+            "y": 222,
+            "width": 65.359375,
+            "height": 24
+          },
+          "ambiguityPolicy": "fail"
+        }
+      },
+      "riskClass": "risky",
+      "checkpoint": {
+        "all": [
+          {
+            "kind": "text_present",
+            "text": "Lookup",
+            "match": "normalized"
+          },
+          {
+            "kind": "url_matches",
+            "pattern": "/t/firstcu/frame/search"
+          }
+        ],
+        "timeoutMs": 10000,
+        "describedAs": "the screen reached the state expected after: Submit the sign-in form to log in to the teller console"
+      },
+      "outcomes": []
+    },
+    {
+      "id": "s4_type",
+      "intent": "Enter the member ID to look up the member record",
+      "action": {
+        "type": "type",
+        "target": {
+          "describedAs": "Enter the member ID to look up the member record",
+          "framePath": [
+            {
+              "name": "mainFrame",
+              "urlPattern": "/t/firstcu/frame/search",
+              "index": 1
+            }
+          ],
+          "strategies": [
+            {
+              "strategy": {
+                "kind": "label_proximity",
+                "labelText": "Member ID:",
+                "labelMatch": "normalized",
+                "relation": "right_of",
+                "controlRole": "textbox"
+              },
+              "confidence": 0.9,
+              "rationale": "control has no accessible name; its visible label is the right_of text \"Member ID:\""
+            },
+            {
+              "strategy": {
+                "kind": "nth_of_role",
+                "role": "textbox",
+                "index": 0
+              },
+              "confidence": 0.25,
+              "rationale": "positional last resort; replay logs loudly when it reaches this"
+            }
+          ],
+          "boundingBoxHint": {
+            "x": 119.6875,
+            "y": 162,
+            "width": 202,
+            "height": 22
+          },
+          "ambiguityPolicy": "fail"
+        },
+        "value": "{{memberId}}",
+        "clearFirst": true
+      },
+      "riskClass": "safe",
+      "outcomes": []
+    },
+    {
+      "id": "s5_click",
+      "intent": "Run the member search to open the member record",
+      "action": {
+        "type": "click",
+        "target": {
+          "describedAs": "Run the member search to open the member record",
+          "framePath": [
+            {
+              "name": "mainFrame",
+              "urlPattern": "/t/firstcu/frame/search",
+              "index": 1
+            }
+          ],
+          "strategies": [
+            {
+              "strategy": {
+                "kind": "role_name",
+                "role": "button",
+                "name": "Search",
+                "nameMatch": "normalized",
+                "aliases": []
+              },
+              "confidence": 0.9,
+              "rationale": "control has a real accessible name"
+            },
+            {
+              "strategy": {
+                "kind": "label_proximity",
+                "labelText": "Search",
+                "labelMatch": "normalized",
+                "relation": "after",
+                "controlRole": "button"
+              },
+              "confidence": 0.75,
+              "rationale": "secondary: the adjacent label reads \"Search\""
+            },
+            {
+              "strategy": {
+                "kind": "nth_of_role",
+                "role": "button",
+                "index": 0
+              },
+              "confidence": 0.25,
+              "rationale": "positional last resort; replay logs loudly when it reaches this"
+            }
+          ],
+          "boundingBoxHint": {
+            "x": 119.6875,
+            "y": 192,
+            "width": 66.03125,
+            "height": 24
+          },
+          "ambiguityPolicy": "fail"
+        }
+      },
+      "riskClass": "risky",
+      "checkpoint": {
+        "all": [
+          {
+            "kind": "text_present",
+            "text": "Member Detail",
+            "match": "normalized"
+          }
+        ],
+        "timeoutMs": 10000,
+        "describedAs": "the screen reached the state expected after: Run the member search to open the member record"
+      },
+      "outcomes": []
+    },
+    {
+      "id": "s6_click",
+      "intent": "Open the posting form to post the fee to the member's account",
+      "action": {
+        "type": "click",
+        "target": {
+          "describedAs": "Open the posting form to post the fee to the member's account",
+          "framePath": [
+            {
+              "name": "mainFrame",
+              "urlPattern": "/t/firstcu/frame/search",
+              "index": 1
+            }
+          ],
+          "strategies": [
+            {
+              "strategy": {
+                "kind": "role_name",
+                "role": "link",
+                "name": "Post Adjustment",
+                "nameMatch": "normalized",
+                "aliases": []
+              },
+              "confidence": 0.9,
+              "rationale": "control has a real accessible name"
+            },
+            {
+              "strategy": {
+                "kind": "label_proximity",
+                "labelText": "Member Detail",
+                "labelMatch": "normalized",
+                "relation": "below",
+                "controlRole": "link"
+              },
+              "confidence": 0.75,
+              "rationale": "secondary: the below label reads \"Member Detail\""
+            },
+            {
+              "strategy": {
+                "kind": "nth_of_role",
+                "role": "link",
+                "index": 0
+              },
+              "confidence": 0.25,
+              "rationale": "positional last resort; replay logs loudly when it reaches this"
+            }
+          ],
+          "boundingBoxHint": {
+            "x": 150.859375,
+            "y": 304,
+            "width": 86.71875,
+            "height": 14
+          },
+          "ambiguityPolicy": "fail"
+        }
+      },
+      "riskClass": "irreversible",
+      "checkpoint": {
+        "all": [
+          {
+            "kind": "text_present",
+            "text": "Account Number: *",
+            "match": "normalized"
+          },
+          {
+            "kind": "url_matches",
+            "pattern": "/t/firstcu/frame/member"
+          }
+        ],
+        "timeoutMs": 10000,
+        "describedAs": "the screen reached the state expected after: Open the posting form to post the fee to the member's account"
+      },
+      "outcomes": []
+    },
+    {
+      "id": "s7_type",
+      "intent": "Enter the account number to which the fee will be posted",
+      "action": {
+        "type": "type",
+        "target": {
+          "describedAs": "Enter the account number to which the fee will be posted",
+          "framePath": [
+            {
+              "name": "mainFrame",
+              "urlPattern": "/t/firstcu/frame/member",
+              "index": 1
+            }
+          ],
+          "strategies": [
+            {
+              "strategy": {
+                "kind": "label_proximity",
+                "labelText": "Account Number: *",
+                "labelMatch": "normalized",
+                "relation": "right_of",
+                "controlRole": "textbox"
+              },
+              "confidence": 0.9,
+              "rationale": "control has no accessible name; its visible label is the right_of text \"Account Number: *\""
+            },
+            {
+              "strategy": {
+                "kind": "nth_of_role",
+                "role": "textbox",
+                "index": 0
+              },
+              "confidence": 0.25,
+              "rationale": "positional last resort; replay logs loudly when it reaches this"
+            }
+          ],
+          "boundingBoxHint": {
+            "x": 157.71875,
+            "y": 162,
+            "width": 202,
+            "height": 22
+          },
+          "ambiguityPolicy": "fail"
+        },
+        "value": "{{accountNumber}}",
+        "clearFirst": true
+      },
+      "riskClass": "safe",
+      "checkpoint": {
+        "all": [
+          {
+            "kind": "url_matches",
+            "pattern": "/t/firstcu/frame/adjustment"
+          }
+        ],
+        "timeoutMs": 10000,
+        "describedAs": "the screen reached the state expected after: Enter the account number to which the fee will be posted"
+      },
+      "outcomes": []
+    },
+    {
+      "id": "s8_type",
+      "intent": "Enter the fee amount to post",
+      "action": {
+        "type": "type",
+        "target": {
+          "describedAs": "Enter the fee amount to post",
+          "framePath": [
+            {
+              "name": "mainFrame",
+              "urlPattern": "/t/firstcu/frame/adjustment",
+              "index": 1
+            }
+          ],
+          "strategies": [
+            {
+              "strategy": {
+                "kind": "label_proximity",
+                "labelText": "Amount: *",
+                "labelMatch": "normalized",
+                "relation": "right_of",
+                "controlRole": "textbox"
+              },
+              "confidence": 0.9,
+              "rationale": "control has no accessible name; its visible label is the right_of text \"Amount: *\""
+            },
+            {
+              "strategy": {
+                "kind": "nth_of_role",
+                "role": "textbox",
+                "index": 0
+              },
+              "confidence": 0.25,
+              "rationale": "positional last resort; replay logs loudly when it reaches this"
+            }
+          ],
+          "boundingBoxHint": {
+            "x": 157.71875,
+            "y": 219,
+            "width": 202,
+            "height": 22
+          },
+          "ambiguityPolicy": "fail"
+        },
+        "value": "{{amount}}",
+        "clearFirst": true
+      },
+      "riskClass": "safe",
+      "outcomes": []
+    },
+    {
+      "id": "s9_type",
+      "intent": "Enter the description for the fee entry",
+      "action": {
+        "type": "type",
+        "target": {
+          "describedAs": "Enter the description for the fee entry",
+          "framePath": [
+            {
+              "name": "mainFrame",
+              "urlPattern": "/t/firstcu/frame/adjustment",
+              "index": 1
+            }
+          ],
+          "strategies": [
+            {
+              "strategy": {
+                "kind": "label_proximity",
+                "labelText": "Description: *",
+                "labelMatch": "normalized",
+                "relation": "right_of",
+                "controlRole": "textbox"
+              },
+              "confidence": 0.9,
+              "rationale": "control has no accessible name; its visible label is the right_of text \"Description: *\""
+            },
+            {
+              "strategy": {
+                "kind": "nth_of_role",
+                "role": "textbox",
+                "index": 0
+              },
+              "confidence": 0.25,
+              "rationale": "positional last resort; replay logs loudly when it reaches this"
+            }
+          ],
+          "boundingBoxHint": {
+            "x": 157.71875,
+            "y": 249,
+            "width": 202,
+            "height": 22
+          },
+          "ambiguityPolicy": "fail"
+        },
+        "value": "Maintenance Fee",
+        "clearFirst": true
+      },
+      "riskClass": "safe",
+      "checkpoint": {
+        "all": [
+          {
+            "kind": "text_present",
+            "text": "Maintenance Fee",
+            "match": "normalized"
+          }
+        ],
+        "timeoutMs": 10000,
+        "describedAs": "the screen reached the state expected after: Enter the description for the fee entry"
+      },
+      "outcomes": []
+    },
+    {
+      "id": "s10_click",
+      "intent": "Confirm and post the fee entry to the account",
+      "action": {
+        "type": "click",
+        "target": {
+          "describedAs": "Confirm and post the fee entry to the account",
+          "framePath": [
+            {
+              "name": "mainFrame",
+              "urlPattern": "/t/firstcu/frame/adjustment",
+              "index": 1
+            }
+          ],
+          "strategies": [
+            {
+              "strategy": {
+                "kind": "role_name",
+                "role": "button",
+                "name": "Confirm",
+                "nameMatch": "normalized",
+                "aliases": []
+              },
+              "confidence": 0.9,
+              "rationale": "control has a real accessible name"
+            },
+            {
+              "strategy": {
+                "kind": "label_proximity",
+                "labelText": "Confirm",
+                "labelMatch": "normalized",
+                "relation": "after",
+                "controlRole": "button"
+              },
+              "confidence": 0.75,
+              "rationale": "secondary: the adjacent label reads \"Confirm\""
+            },
+            {
+              "strategy": {
+                "kind": "nth_of_role",
+                "role": "button",
+                "index": 0
+              },
+              "confidence": 0.25,
+              "rationale": "positional last resort; replay logs loudly when it reaches this"
+            }
+          ],
+          "boundingBoxHint": {
+            "x": 157.71875,
+            "y": 279,
+            "width": 70.015625,
+            "height": 24
+          },
+          "ambiguityPolicy": "fail"
+        }
+      },
+      "riskClass": "irreversible",
+      "checkpoint": {
+        "all": [
+          {
+            "kind": "text_present",
+            "text": "Entry Posted",
+            "match": "normalized"
+          }
+        ],
+        "timeoutMs": 10000,
+        "describedAs": "the screen reached the state expected after: Confirm and post the fee entry to the account"
+      },
+      "outcomes": []
+    }
+  ],
+  "successCondition": {
+    "all": [
+      {
+        "kind": "text_present",
+        "text": "Lookup",
+        "match": "normalized"
+      },
+      {
+        "kind": "url_matches",
+        "pattern": "/t/firstcu/frame/adjustment-receipt"
+      }
+    ],
+    "timeoutMs": 10000,
+    "describedAs": "the screen reached the state expected after: achieve the goal: Sign in to the teller console, look up the member whose ID is {{memberId}}, then post a Fee of {{amount}} to account {{accountNumber}} described as Maintenance Fee, and read back the reference and the resulting balance."
+  },
+  "outcomes": [],
+  "policy": {
+    "allowedOrigins": ["http://127.0.0.1:8080"],
+    "allowedActions": [
+      "navigate",
+      "click",
+      "type",
+      "select",
+      "press",
+      "read",
+      "wait_for"
+    ],
+    "confirmAtOrAbove": "irreversible"
+  },
+  "provenance": {
+    "discoveredBy": {
+      "provider": "nvidia-nim",
+      "model": "z-ai/glm-5.3"
+    },
+    "runId": "discovery-2026-09-20T22-19-03-kzgcn",
+    "createdAt": "2026-09-20T22:21:58.014Z",
+    "transcriptSha256": "8cea09c40de4e538061af054e5d0b75d22df22fbd63531a8d9fb010d71919b4f",
+    "humanAssisted": false
+  }
+}

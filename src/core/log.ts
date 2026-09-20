@@ -34,6 +34,7 @@ export type RunEventKind =
   | "model_request"
   | "model_response"
   | "escalation_raised"
+  | "escalation_resolved"
   | "control_transferred"
   | "human_action"
   | "evidence_written"

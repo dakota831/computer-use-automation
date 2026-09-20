@@ -23,6 +23,26 @@ import { redactor } from "../src/core/redact.js";
  * discovery run produced, alongside freshly generated replays.
  */
 
+/**
+ * Return the target application to its seed before measuring anything.
+ *
+ * The teller app now has a write action that really moves money, so whatever
+ * somebody posted while clicking around would otherwise show up in the numbers
+ * this script prints and commits. Resetting first is what keeps the evidence
+ * reproducible rather than a snapshot of the app's mood.
+ */
+async function resetTargetLedger(): Promise<void> {
+  const base = process.env.DEX_APP_BASE ?? "http://127.0.0.1:8080";
+  for (const tenant of ["firstcu", "summit"]) {
+    try {
+      await fetch(`${base}/t/${tenant}/admin/reset-ledger`, { method: "POST" });
+    } catch {
+      // The app may not be up yet; the run below will fail with a clearer
+      // message than anything this could report.
+    }
+  }
+}
+
 const SECRETS: Record<string, string> = {
   "corelink.username": process.env.DEX_TELLER_USER ?? "admin",
   "corelink.password": process.env.DEX_TELLER_PASS ?? "admin",
@@ -31,6 +51,8 @@ Object.values(SECRETS).forEach((v) => redactor.registerSecret(v));
 const secrets = (k: string) => SECRETS[k];
 
 const EV = "evidence";
+await resetTargetLedger();
+
 const catalog = new Catalog("artifacts").load();
 const baseline = catalog.find("cu.member.read_savings_balance")!.capability;
 

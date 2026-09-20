@@ -1,9 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { ControlLease, type LeaseEvent } from "./lease.js";
-import type {
-  EscalationContext,
-  EscalationDecision,
-} from "../replay/executor.js";
+import type { EscalationDecision } from "../replay/executor.js";
 import type { Surface } from "../surface/types.js";
 import type { RunLogger } from "../core/log.js";
 
@@ -97,7 +94,23 @@ export class InterventionRegistry {
    * un-awaited promise rather than a polling loop or a state machine.
    */
   raise(args: {
-    ctx: EscalationContext;
+    /**
+     * What is being paused, as plain fields rather than an EscalationContext.
+     *
+     * Replay has a parsed Capability and a Step to hand; discovery has neither
+     * - it is in the middle of producing the first one. Since only these eight
+     * values were ever read out of the context, taking them directly lets both
+     * callers use the same registry instead of discovery growing a parallel
+     * one that would then drift from it.
+     */
+    runId: string;
+    capabilityId: string;
+    goal: string;
+    stepId: string;
+    stepIntent: string;
+    reason: string;
+    url: string;
+    screenshotPath?: string;
     surface: Surface;
     lease: ControlLease;
     log?: RunLogger;
@@ -118,17 +131,17 @@ export class InterventionRegistry {
 
     const intervention: Intervention = {
       id,
-      runId: args.ctx.runId,
-      capabilityId: args.ctx.capability.id,
+      runId: args.runId,
+      capabilityId: args.capabilityId,
       version: args.version,
-      goal: args.ctx.capability.title,
-      stepId: args.ctx.step.id,
-      stepIntent: args.ctx.step.intent,
-      reason: args.ctx.reason,
+      goal: args.goal,
+      stepId: args.stepId,
+      stepIntent: args.stepIntent,
+      reason: args.reason,
       raisedAt: new Date().toISOString(),
       status: "pending",
-      url: args.ctx.observation.url,
-      screenshotPath: args.ctx.screenshotPath,
+      url: args.url,
+      screenshotPath: args.screenshotPath,
       humanActions: [],
       lease: args.lease,
       surface: args.surface,

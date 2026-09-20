@@ -10,6 +10,7 @@ import {
   Capability as CapabilitySchema,
 } from "../core/artifact.js";
 import type { TargetDescriptor, RankedStrategy } from "../core/targeting.js";
+import { screenText } from "../surface/types.js";
 import type { Observation, SurfaceNode } from "../surface/types.js";
 import { defaultPolicy, classifyActionRisk } from "../core/policy.js";
 
@@ -45,8 +46,20 @@ export type RecordedAction = {
   kind: "click" | "type" | "select" | "press" | "navigate" | "read";
   /** The node acted on, as perceived at the time. */
   node?: SurfaceNode;
-  /** Raw value typed, before templating. */
+  /** Raw value typed, after substitution. */
   value?: string;
+  /**
+   * What the agent actually asked for, before substitution.
+   *
+   * Recovering the template by reverse-mapping the substituted value is
+   * ambiguous whenever two placeholders resolve to the same string, and the
+   * commonest case of that is a test fixture where the username and the
+   * password are both "admin": the map keeps whichever was inserted last, and
+   * the capability types the password into the user-id field. It replays fine
+   * against that fixture and breaks against any real credentials. Carrying the
+   * template removes the guess rather than improving it.
+   */
+  template?: string;
   url?: string;
   key?: string;
   /** For `read`: the name the value was captured under. */
@@ -264,13 +277,46 @@ export function recordCapability(opts: RecordOptions): Capability {
     Object.entries(opts.secretValues).map(([key, v]) => [v, key]),
   );
 
-  /** Replace concrete values with templates so the flow generalises. */
-  const templatize = (raw: string): string => {
+  /**
+   * Replace concrete values with templates so the flow generalises.
+   *
+   * `recorded` is what the agent asked for. When it is present and already
+   * templated it is used verbatim - it is the truth, and inference cannot
+   * improve on it. The value-matching below is the fallback for actions that
+   * carry no template, such as a navigation URL.
+   */
+  const templatize = (raw: string, recorded?: string): string => {
+    if (recorded && /\{\{/.test(recorded)) return recorded;
     const secret = secretByValue.get(raw);
     if (secret) return `{{secret:${secret}}}`;
     const param = paramByValue.get(raw);
     if (param) return `{{${param}}}`;
     return raw;
+  };
+
+  /**
+   * A typed literal that is really a mangled parameter.
+   *
+   * `templatize` matches a whole typed value exactly, which is right when the
+   * model types a parameter as supplied. When it types a variant - observed:
+   * "100001-S0" where the parameter was "0001-100001-S0" - nothing matches and
+   * the fragment is baked into the artifact as a constant, so every future run
+   * types that one run's data. Checkpoints were already guarded against this;
+   * action values were not.
+   *
+   * A shared run of five or more characters between a literal and a supplied
+   * value is the signature. Deliberate constants ("Maintenance Fee") do not
+   * overlap a member id or an account number, so this does not fire on them.
+   */
+  const mangledParameter = (literal: string): string | undefined => {
+    const v = literal.trim();
+    if (v.length < 5) return undefined;
+    for (const [name, p] of Object.entries(opts.parameters)) {
+      const supplied = String(p.value ?? "").trim();
+      if (supplied.length < 5 || supplied === v) continue;
+      if (supplied.includes(v) || v.includes(supplied)) return name;
+    }
+    return undefined;
   };
 
   /** Secrets and per-run parameter values are both unfit to appear in a checkpoint. */
@@ -288,12 +334,24 @@ export function recordCapability(opts: RecordOptions): Capability {
         a.intent,
         forbiddenInCheckpoints,
       );
+      const mangled =
+        a.kind === "type" && !/\{\{/.test(templatize(a.value ?? "", a.template))
+          ? mangledParameter(a.value ?? "")
+          : undefined;
       const base = {
         id: a.stepId,
         intent: a.intent,
         riskClass: classifyRisk(a),
         outcomes: [],
         ...(checkpoint ? { checkpoint } : {}),
+        ...(mangled
+          ? {
+              reviewNote:
+                `Types the literal ${JSON.stringify((a.value ?? "").trim())}, which overlaps the value supplied for {{${mangled}}}. ` +
+                `This looks like a mangled reference: as recorded it will type that one run's data every time. ` +
+                `Replace it with {{${mangled}}} or delete the step.`,
+            }
+          : {}),
       };
 
       switch (a.kind) {
@@ -313,7 +371,7 @@ export function recordCapability(opts: RecordOptions): Capability {
             action: {
               type: "type" as const,
               target: describeTarget(a.node!, a.intent),
-              value: templatize(a.value ?? ""),
+              value: templatize(a.value ?? "", a.template),
               clearFirst: true,
             },
           };
@@ -323,7 +381,7 @@ export function recordCapability(opts: RecordOptions): Capability {
             action: {
               type: "select" as const,
               target: describeTarget(a.node!, a.intent),
-              value: templatize(a.value ?? ""),
+              value: templatize(a.value ?? "", a.template),
             },
           };
         default:
@@ -435,5 +493,9 @@ export function recordCapability(opts: RecordOptions): Capability {
 
 /** Risk at record time, using the shared heuristic so discovery and recording agree. */
 function classifyRisk(a: RecordedAction): Step["riskClass"] {
-  return classifyActionRisk(a.kind, `${a.node?.label ?? ""} ${a.intent}`);
+  return classifyActionRisk(
+    a.kind,
+    `${a.node?.label ?? ""} ${a.intent}`,
+    a.before ? screenText(a.before) : "",
+  );
 }

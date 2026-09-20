@@ -30,6 +30,10 @@ export type Tenant = {
     savings: string;
     openSubAccount: string;
     confirm: string;
+    /** The adjustment-posting screen, named differently per institution. */
+    postAdjustment: string;
+    /** "Description" at one institution, "Memo" at the other. */
+    memo: string;
   };
   controlPrefix: string;
   resultColumnsSwapped: boolean;
@@ -63,6 +67,8 @@ export const TENANTS: Record<string, Tenant> = {
       savings: "Savings Balance",
       openSubAccount: "Open Sub-Account",
       confirm: "Confirm",
+      postAdjustment: "Post Adjustment",
+      memo: "Description",
     },
     controlPrefix: "ctl00$MainContent$",
     resultColumnsSwapped: false,
@@ -91,6 +97,8 @@ export const TENANTS: Record<string, Tenant> = {
       savings: "Regular Savings",
       openSubAccount: "Add Sub-Account",
       confirm: "Submit",
+      postAdjustment: "Enter Adjustment",
+      memo: "Memo",
     },
     controlPrefix: "ctl00$cphBody$",
     resultColumnsSwapped: true,

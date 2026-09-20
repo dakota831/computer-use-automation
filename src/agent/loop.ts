@@ -9,7 +9,8 @@ import { RunLogger, newRunId } from "../core/log.js";
 import { redactor } from "../core/redact.js";
 import { resolveTemplate } from "../core/template.js";
 import { WebSurface } from "../surface/web.js";
-import type { Observation, SurfaceNode } from "../surface/types.js";
+import { screenText } from "../surface/types.js";
+import type { Observation, Surface, SurfaceNode } from "../surface/types.js";
 import { NimClient, type ChatMessage } from "./llm.js";
 import {
   TOOLS,
@@ -75,6 +76,30 @@ export type DiscoverOptions = {
   onProgress?: (p: DiscoveryProgress) => void;
   /** Lets an operator stop a run that is going nowhere. */
   signal?: AbortSignal;
+  /**
+   * Asked before performing a step the policy engine wants confirmed.
+   *
+   * Discovery started from a command line genuinely has nobody attached, and
+   * refusing is right. Discovery started from the console has an operator
+   * watching a progress panel, and refusing there means an irreversible action
+   * can never be taught at all - which does not make the system safer, it
+   * makes it unable to learn the operations that most need a reviewed
+   * capability wrapped around them. When a host supplies this hook the run
+   * parks on it; with no hook the old refusal stands.
+   */
+  onConfirm?: (c: ConfirmRequest) => Promise<boolean>;
+};
+
+export type ConfirmRequest = {
+  runId: string;
+  stepId: string;
+  /** The model's own words for what it is about to do. */
+  intent: string;
+  /** Why policy stopped to ask. */
+  reason: string;
+  url: string;
+  surface: Surface;
+  screenshotPath?: string;
 };
 
 export type DiscoveryProgress = {
@@ -124,7 +149,16 @@ export async function discover(opts: DiscoverOptions): Promise<DiscoverResult> {
   const timeoutMs =
     opts.timeoutMs ??
     Number(process.env.DEX_DISCOVERY_TIMEOUT_MS ?? 5 * 60_000);
-  const deadline = started + timeoutMs;
+  /**
+   * The agent's wall-clock budget, as an absolute time that can move.
+   *
+   * It moves for exactly one reason: time spent parked waiting for a person to
+   * approve a step is not time the agent spent. Charging a human's deliberation
+   * to the agent's clock would mean the more carefully somebody reviewed an
+   * irreversible action, the more likely the run was to be killed for being
+   * slow - which is precisely backwards.
+   */
+  let deadline = started + timeoutMs;
 
   /**
    * The budget as a signal, not just a comparison.
@@ -135,8 +169,19 @@ export async function discover(opts: DiscoverOptions): Promise<DiscoverResult> {
    * report into a limit.
    */
   const budget = new AbortController();
-  const budgetTimer = setTimeout(() => budget.abort(), timeoutMs);
+  let budgetTimer = setTimeout(() => budget.abort(), timeoutMs);
   opts.signal?.addEventListener("abort", () => budget.abort(), { once: true });
+
+  /** Give back the wall-clock time a human took to decide. */
+  const creditWaitingTime = (waitedMs: number) => {
+    if (waitedMs <= 0) return;
+    deadline += waitedMs;
+    clearTimeout(budgetTimer);
+    budgetTimer = setTimeout(
+      () => budget.abort(),
+      Math.max(0, deadline - Date.now()),
+    );
+  };
 
   // Register every secret before anything can be written anywhere.
   for (const v of Object.values(opts.secrets)) redactor.registerSecret(v);
@@ -438,7 +483,12 @@ export async function discover(opts: DiscoverOptions): Promise<DiscoverResult> {
         // Gate on the control's own label, not the model's prose. The label is what a
         // human would read before clicking; `why` is free text and a run explained as
         // "submit the search" would otherwise be refused for saying the word.
-        const actionRisk = classifyActionRisk(name, node?.label ?? "");
+        // The screen this control commits, not the shell around it.
+        const actionRisk = classifyActionRisk(
+          name,
+          node?.label ?? "",
+          screenText(observation),
+        );
         const proposedAction =
           name === "click"
             ? { type: "click" as const, target: step0Target }
@@ -470,27 +520,69 @@ export async function discover(opts: DiscoverOptions): Promise<DiscoverResult> {
         }
 
         if (verdict.decision === "confirm") {
-          /**
-           * Discovery has no human attached, so a step this risky is refused
-           * rather than performed. Recording an irreversible step is a
-           * deliberate authoring act, not something a model does unsupervised —
-           * and the model is told plainly so it can stop instead of retrying.
-           */
+          // Recording an irreversible step is a deliberate authoring act. It
+          // needs a person either way; the only question is whether one is here.
+          const shotPath = log.screenshot(
+            await surface.screenshot(),
+            "discovery-awaiting-confirmation",
+          );
+          if (!opts.onConfirm) {
+            log.event("escalation_raised", {
+              step: stepNo,
+              stepId,
+              reason: verdict.reason,
+              url: surface.url(),
+              resolution: "refused_during_discovery",
+            });
+            messages.push({
+              role: "tool",
+              tool_call_id: call.id,
+              content:
+                `Refused: ${verdict.reason}. This run is unattended, so this action needs a human. ` +
+                `If the goal cannot be completed without it, call "blocked" and explain.`,
+            });
+            continue;
+          }
+
           log.event("escalation_raised", {
             step: stepNo,
             stepId,
             reason: verdict.reason,
             url: surface.url(),
-            resolution: "refused_during_discovery",
+            resolution: "awaiting_operator",
           });
-          messages.push({
-            role: "tool",
-            tool_call_id: call.id,
-            content:
-              `Refused: ${verdict.reason}. Discovery runs unattended, so this action needs a human. ` +
-              `If the goal cannot be completed without it, call "blocked" and explain.`,
+          // The run suspends here on a live session, exactly as replay does.
+          const parkedAt = Date.now();
+          const approved = await opts.onConfirm({
+            runId,
+            stepId,
+            intent: args.why ?? name,
+            reason: verdict.reason,
+            url: surface.url(),
+            surface,
+            screenshotPath: typeof shotPath === "string" ? shotPath : undefined,
           });
-          continue;
+          const waitedMs = Date.now() - parkedAt;
+          creditWaitingTime(waitedMs);
+          log.event("escalation_resolved", {
+            step: stepNo,
+            stepId,
+            resolution: approved ? "approved" : "refused",
+            waitedMs,
+          });
+          if (!approved) {
+            messages.push({
+              role: "tool",
+              tool_call_id: call.id,
+              content:
+                `The operator refused this action: ${verdict.reason}. ` +
+                `If the goal cannot be completed without it, call "blocked" and explain.`,
+            });
+            continue;
+          }
+          // Approved: fall through and perform it, recording it like any other
+          // step. The capability that results carries the risk class, so the
+          // same question is asked again at approval time.
         }
 
         if (name === "click") {
@@ -527,6 +619,7 @@ export async function discover(opts: DiscoverOptions): Promise<DiscoverResult> {
             kind: "type",
             node,
             value,
+            template: args.text,
             before,
             after: before,
           });

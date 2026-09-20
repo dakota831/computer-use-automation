@@ -115,7 +115,14 @@ app.post("/api/capabilities/:ref/invoke", async (req, res) => {
       beforeAction: () => lease.awaitAutomation(),
       onEscalation: async (ctx) => {
         const { intervention, decided } = interventions.raise({
-          ctx,
+          runId: ctx.runId,
+          capabilityId: ctx.capability.id,
+          goal: ctx.capability.title,
+          stepId: ctx.step.id,
+          stepIntent: ctx.step.intent,
+          reason: ctx.reason,
+          url: ctx.observation.url,
+          screenshotPath: ctx.screenshotPath,
           surface,
           lease,
           version: cap.version,
@@ -197,6 +204,45 @@ app.post("/api/discovery", (req, res) => {
       maxSteps: b.maxSteps ? Number(b.maxSteps) : undefined,
     },
     SECRETS,
+    {
+      /**
+       * Discovery started from the console has a human watching it, so a step
+       * the policy engine wants confirmed becomes an ordinary intervention
+       * rather than a dead end. Same registry, same console screen, same
+       * live-session handoff replay uses - the only difference is that what
+       * resumes afterwards is a run that is still writing the capability.
+       */
+      onConfirm: async (c, job) => {
+        const lease = new ControlLease(`discovery:${c.runId}`);
+        const { intervention, decided } = interventions.raise({
+          runId: c.runId,
+          capabilityId: b.capabilityId,
+          goal: b.title,
+          stepId: c.stepId,
+          stepIntent: c.intent,
+          reason: c.reason,
+          url: c.url,
+          screenshotPath: c.screenshotPath,
+          surface: c.surface,
+          lease,
+          version: "(draft)",
+        });
+        job.awaiting = {
+          interventionId: intervention.id,
+          intent: c.intent,
+          reason: c.reason,
+        };
+        sessions.set(intervention.id, {
+          surface: c.surface as WebSurface,
+          lease,
+        });
+        const decision = await decided;
+        sessions.delete(intervention.id);
+        // Only "resume" means "go ahead and do it". If the operator performed
+        // the step themselves, repeating it would post the entry twice.
+        return decision.action === "resume";
+      },
+    },
   );
   if ("error" in out) return res.status(400).json({ error: out.error });
   res.status(202).json(out.job);

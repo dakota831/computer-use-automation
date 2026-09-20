@@ -155,6 +155,14 @@ export const Step = z.object({
   checkpoint: Checkpoint.optional(),
   /** Step-scoped rules, evaluated before the checkpoint is judged to have failed. */
   outcomes: z.array(OutcomeRule).default([]),
+  /**
+   * Something the recorder could not resolve and a human must look at.
+   *
+   * Not an error: the step was recorded and is replayable. It is a reason the
+   * draft should not be approved without someone reading this step, and the
+   * console surfaces it as an anomaly during review.
+   */
+  reviewNote: z.string().optional(),
 });
 export type Step = z.infer<typeof Step>;
 

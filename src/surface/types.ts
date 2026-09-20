@@ -191,6 +191,28 @@ export function isRemoteControllable(
   );
 }
 
+/**
+ * The text of the screen the user is actually working on.
+ *
+ * This application - like the class of application it stands in for - renders
+ * a persistent shell around an inner content frame. The shell's nav, crest and
+ * breadcrumbs come first in document order and run to several hundred
+ * characters, so anything that reads "the first N characters of the page" gets
+ * the chrome and never reaches the screen. Taking the content frame directly
+ * is what makes the answer about the task rather than the furniture.
+ *
+ * Falls back to the whole observation when there is no child frame, so a
+ * single-document application still gets a sensible answer.
+ */
+export function screenText(o: Observation, limit = 800): string {
+  const inFrame = o.nodes.filter((n) => n.framePath.length > 0);
+  const source = inFrame.length ? inFrame : o.nodes;
+  return [o.title ?? "", ...source.map((n) => n.label ?? "")]
+    .filter(Boolean)
+    .join(" ")
+    .slice(0, limit);
+}
+
 export const READABLE_ROLES = new Set([
   "cell",
   "LayoutTableCell",

@@ -178,17 +178,40 @@ export class PolicyEngine {
  * false "safe" costs an irreversible action nobody approved. It is a heuristic
  * and is meant to prompt review, not replace it.
  */
-export function classifyActionRisk(kind: string, text: string): RiskClass {
+/** Operations that cannot be taken back once they complete. */
+const IRREVERSIBLE =
+  /\b(transfer|withdraw|delete|remove|post|posting|close account|wire|disburse)\b/;
+/** Controls that commit whatever screen they are on. */
+const COMMITTING =
+  /\b(submit|confirm|save|create|open|add|apply|update|approve)\b/;
+
+/**
+ * How dangerous is this action?
+ *
+ * `context` is the surrounding screen - its heading and visible text - and it
+ * is not optional in spirit even though it is in the signature.
+ *
+ * Judging by the control's own label alone gets the important case exactly
+ * backwards, which is how it was first written and how it shipped. A link
+ * reading "Post Adjustment" matched "post" and was gated as irreversible, but
+ * that link only opens a form; nothing has happened yet. The button that
+ * actually moves the money reads "Confirm", matched only the committing list,
+ * and was waved through as merely risky. The gate was guarding the doorway and
+ * ignoring the transaction.
+ *
+ * So a committing control inherits the consequence of the screen it commits.
+ */
+export function classifyActionRisk(
+  kind: string,
+  text: string,
+  context = "",
+): RiskClass {
   if (kind !== "click") return "safe";
   const t = text.toLowerCase();
-  if (
-    /\b(transfer|withdraw|delete|remove|post|close account|wire|disburse)\b/.test(
-      t,
-    )
-  )
-    return "irreversible";
-  if (/\b(submit|confirm|save|create|open|add|apply|update|approve)\b/.test(t))
-    return "risky";
+  if (IRREVERSIBLE.test(t)) return "irreversible";
+  if (COMMITTING.test(t)) {
+    return IRREVERSIBLE.test(context.toLowerCase()) ? "irreversible" : "risky";
+  }
   return "safe";
 }
 

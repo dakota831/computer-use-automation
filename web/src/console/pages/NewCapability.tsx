@@ -8,6 +8,7 @@ import {
   Loader2,
   Square,
   Info,
+  Hand,
 } from "lucide-react";
 import {
   authoring,
@@ -403,11 +404,30 @@ export function NewCapability() {
                           : ""}
                       </Mono>
                     </Row>
-                    {job.lastAction && (
-                      <div className="rule mt-1 border-blue bg-blue-pale p-2 text-xs break-words text-ink">
-                        <Loader2 className="mr-1 inline size-3.5 animate-spin" />
-                        {job.lastAction}
+                    {job.awaiting ? (
+                      // Parked, not thinking. A spinner here would be a lie,
+                      // and the run would sit until the escalation timed out.
+                      <div className="rule mt-1 border-warn bg-warn-pale p-2 text-xs break-words text-ink">
+                        <Hand className="mr-1 inline size-3.5" />
+                        <strong>Waiting for you.</strong> The agent wants to{" "}
+                        {job.awaiting.intent.toLowerCase()} —{" "}
+                        {job.awaiting.reason}
+                        <div className="mt-2">
+                          <Link
+                            to={`/session/${job.awaiting.interventionId}`}
+                            className="text-blue underline"
+                          >
+                            Review and decide
+                          </Link>
+                        </div>
                       </div>
+                    ) : (
+                      job.lastAction && (
+                        <div className="rule mt-1 border-blue bg-blue-pale p-2 text-xs break-words text-ink">
+                          <Loader2 className="mr-1 inline size-3.5 animate-spin" />
+                          {job.lastAction}
+                        </div>
+                      )
                     )}
                   </>
                 )}

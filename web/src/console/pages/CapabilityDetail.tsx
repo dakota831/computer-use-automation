@@ -9,6 +9,7 @@ import {
   GitCompare,
   Save,
   X,
+  AlertTriangle,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { evidence, authoring, type CapabilityDoc } from "../lib/api.ts";
@@ -234,6 +235,16 @@ export function CapabilityDetail() {
                       <Badge>{s.action.type}</Badge>
                     </div>
                     <p className="mt-1.5 text-sm">{s.intent}</p>
+
+                    {s.reviewNote && (
+                      // The reason this draft should not be approved as it
+                      // stands. Loud on purpose: it replays cleanly and does
+                      // the wrong thing, so nothing downstream will catch it.
+                      <div className="rule mt-2 border-warn bg-warn-pale p-2 text-xs break-words text-ink">
+                        <AlertTriangle className="mr-1 inline size-3.5" />
+                        <strong>Needs a look.</strong> {s.reviewNote}
+                      </div>
+                    )}
 
                     {s.action.value && (
                       <p className="mt-1">

@@ -23,7 +23,23 @@ const PHONE = { width: 390, height: 844 };
 const b = await chromium.launch();
 const problems = [];
 
-async function check(page, name, label) {
+/**
+ * `frameOnly` waives the horizontal-overflow rule, and only that rule.
+ *
+ * A /frame/ URL is one panel of the target application, not a page: what a
+ * person opens is the shell, which embeds it in a scrolling iframe and is
+ * checked at both widths like everything else. The panels are fixed-width
+ * tables on purpose — that is what the fixture is imitating — and measured at
+ * 390px they are 630px (adjustment), 670px (search, member, sub-account) and
+ * 910px (the registers). Asserting a responsive layout on them would not be
+ * finding a bug, it would be asking a 2006 back-office screen to be a 2026
+ * one, and the first thing that would have to go is the nested-table markup
+ * the targeting engine exists to cope with.
+ *
+ * Console errors and screenshots still apply, which is what these entries are
+ * here for.
+ */
+async function check(page, name, label, { frameOnly = false } = {}) {
   const errs = page.__errs;
   await page.waitForTimeout(1100);
   await page.screenshot({
@@ -32,7 +48,8 @@ async function check(page, name, label) {
   });
   const sw = await page.evaluate(() => document.documentElement.scrollWidth);
   const iw = await page.evaluate(() => window.innerWidth);
-  if (sw > iw + 1) errs.push(`HORIZONTAL OVERFLOW ${sw}px > ${iw}px`);
+  if (!frameOnly && sw > iw + 1)
+    errs.push(`HORIZONTAL OVERFLOW ${sw}px > ${iw}px`);
   const ok = errs.length === 0;
   console.log(
     `${(name + " · " + label).padEnd(40)} ${ok ? "clean" : "ISSUES: " + errs.slice(0, 2).join(" | ")}`,
@@ -151,6 +168,29 @@ for (const tenant of ["firstcu", "summit"]) {
       await f.click("input[type=submit]");
       await page.waitForTimeout(1200);
       await check(page, `teller-${tenant}-member`, label);
+
+      // The posting screen and its receipt. The only place in the application
+      // where money moves, so the only place a rendering fault is expensive.
+      await page.goto(`${TELLER}/t/${tenant}/frame/adjustment`, {
+        waitUntil: "networkidle",
+      });
+      await check(page, `teller-${tenant}-adjustment`, label, {
+        frameOnly: true,
+      });
+      await page.goto(`${TELLER}/t/${tenant}/frame/adjustment?acct=nope`, {
+        waitUntil: "networkidle",
+      });
+      f = page.frame({ name: "mainFrame" }) ?? page.mainFrame();
+      await f.fill('input[name$="txtAdjAmount"]', "1.25");
+      await f.fill('input[name$="txtAdjMemo"]', "Visual sweep");
+      await Promise.all([
+        page.waitForNavigation({ waitUntil: "networkidle" }).catch(() => {}),
+        f.click("input[type=submit]"),
+      ]);
+      await page.waitForTimeout(600);
+      await check(page, `teller-${tenant}-adjustment-refused`, label, {
+        frameOnly: true,
+      });
     } catch (e) {
       console.log(
         `${("teller-" + tenant + " · " + label).padEnd(40)} FAILED: ${String(e).split("\n")[0].slice(0, 60)}`,

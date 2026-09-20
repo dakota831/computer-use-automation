@@ -207,6 +207,23 @@ export const ACCOUNTS: Account[] = [
   },
 ];
 
+/**
+ * The restricted member's account.
+ *
+ * Added so the permission refusal on the posting screen is reachable at all:
+ * without an account row the lookup failed first and the screen answered "no
+ * such account", which is a different refusal with a different meaning. An
+ * exceptional state that cannot be reached is not covered, it is only claimed.
+ */
+ACCOUNTS.push({
+  number: "0001-200001-S0",
+  memberId: "200001",
+  kind: "Regular Savings",
+  opened: "2020-05-30",
+  status: "Open",
+  balance: 0,
+});
+
 export const TRANSACTIONS: Txn[] = [
   {
     posted: "2026-09-19",
@@ -332,6 +349,128 @@ export const AUDIT_LOG = [
     detail: "Daily totals — branch 004",
   },
 ];
+
+/* -------------------------------------------------------------------------
+ * The posting ledger.
+ *
+ * Everything above is seed data and never changes. Adjustments posted through
+ * the teller screen are held here instead of being written back over the seed,
+ * and every balance the application renders is the seed folded with whatever
+ * has been posted against it.
+ *
+ * That split is what lets the application have a genuinely irreversible write
+ * action - a teller cannot un-post an adjustment, and the balance they see
+ * afterwards is the one they changed - while the recorded evidence stays
+ * reproducible: `resetLedger()` returns the whole application to its seed, so
+ * a replay matrix run today prints the same numbers as one run next week.
+ * ---------------------------------------------------------------------- */
+
+export type Adjustment = {
+  reference: string;
+  account: string;
+  memberId: string;
+  description: string;
+  type: Txn["type"];
+  /** Signed: a fee is negative. */
+  amount: number;
+  posted: string;
+  teller: string;
+};
+
+const ledger: Adjustment[] = [];
+let adjustmentSeq = 7200;
+
+export const adjustments = (): readonly Adjustment[] => ledger;
+
+/** Drop everything posted this session. Used by the evidence harness. */
+export function resetLedger(): void {
+  ledger.length = 0;
+  adjustmentSeq = 7200;
+}
+
+/** Net of everything posted against one account. */
+const postedAgainst = (accountNumber: string): number =>
+  ledger
+    .filter((a) => a.account === accountNumber)
+    .reduce((s, a) => s + a.amount, 0);
+
+/** An account's balance as the application should display it. */
+export const accountBalance = (a: Account): number =>
+  round2(a.balance + postedAgainst(a.number));
+
+/**
+ * A member's savings balance as the member record should display it.
+ *
+ * The member record and the account register are separate screens reading
+ * separate seed fields, and they are seeded to agree. They have to keep
+ * agreeing after a posting, or the application would contradict itself in a
+ * way no real core system does - so both fold the same ledger.
+ */
+export function memberSavings(m: Member): number {
+  const savings = ACCOUNTS.find(
+    (a) => a.memberId === m.memberId && a.kind === "Regular Savings",
+  );
+  return round2(
+    m.savingsBalance + (savings ? postedAgainst(savings.number) : 0),
+  );
+}
+
+/** Money is decimal; floating point addition is not. Round at every boundary. */
+const round2 = (n: number): number => Math.round(n * 100) / 100;
+
+export type PostResult =
+  | { ok: true; adjustment: Adjustment; balance: number }
+  | { ok: false; reason: "no_account" | "not_open" | "bad_amount" };
+
+/**
+ * Post an adjustment. Irreversible by design: there is no reversal screen,
+ * which is exactly why the capability that drives it has to be reviewed and
+ * approved before it may run unattended.
+ */
+export function postAdjustment(input: {
+  account: string;
+  description: string;
+  amount: number;
+  type: Txn["type"];
+  teller: string;
+}): PostResult {
+  const acct = ACCOUNTS.find((a) => a.number === input.account.trim());
+  if (!acct) return { ok: false, reason: "no_account" };
+  if (acct.status !== "Open") return { ok: false, reason: "not_open" };
+  if (!Number.isFinite(input.amount) || input.amount <= 0)
+    return { ok: false, reason: "bad_amount" };
+
+  // A fee or withdrawal debits; anything else credits.
+  const signed =
+    input.type === "Fee" || input.type === "Withdrawal"
+      ? -round2(input.amount)
+      : round2(input.amount);
+
+  const adjustment: Adjustment = {
+    reference: `ADJ-${++adjustmentSeq}`,
+    account: acct.number,
+    memberId: acct.memberId,
+    description: input.description.trim() || input.type,
+    type: input.type,
+    amount: signed,
+    posted: "2026-09-20",
+    teller: input.teller,
+  };
+  ledger.push(adjustment);
+  return { ok: true, adjustment, balance: accountBalance(acct) };
+}
+
+/** Posted adjustments rendered as register rows, newest first. */
+export const adjustmentTxns = (): Txn[] =>
+  [...ledger].reverse().map((a) => ({
+    posted: a.posted,
+    account: a.account,
+    memberId: a.memberId,
+    description: a.description,
+    type: a.type,
+    amount: a.amount,
+    balance: accountBalance(ACCOUNTS.find((x) => x.number === a.account)!),
+  }));
 
 export const money = (n: number): string =>
   `${n < 0 ? "-" : ""}$${Math.abs(n)

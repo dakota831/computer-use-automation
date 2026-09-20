@@ -197,6 +197,8 @@ export type CapabilityDoc = {
       };
     };
     checkpoint?: { describedAs: string; all: Record<string, unknown>[] };
+    /** Something the recorder could not resolve; shown during review. */
+    reviewNote?: string;
     outcomes: OutcomeRule[];
   }[];
   successCondition: { describedAs: string; all: Record<string, unknown>[] };
@@ -254,6 +256,8 @@ export type DiscoveryJob = {
   lastAction?: string;
   /** Absolute ms timestamp the wall-clock budget expires at. */
   deadline?: number;
+  /** Present while the run is parked waiting for someone to allow a step. */
+  awaiting?: { interventionId: string; intent: string; reason: string };
 };
 
 export type DiscoveryTarget = { id: string; label: string; entryPoint: string };

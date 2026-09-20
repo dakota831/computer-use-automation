@@ -5,6 +5,8 @@ import {
   DAILY_TOTALS,
   AUDIT_LOG,
   MEMBERS,
+  accountBalance,
+  adjustmentTxns,
   money,
 } from "./data.js";
 import { frameDoc, panel, esc, fieldRow } from "./render.js";
@@ -52,12 +54,12 @@ export function accountsPage(t: Tenant, memberId?: string): string {
       esc(a.memberId),
       esc(a.opened),
       esc(a.status),
-      num(a.balance),
+      num(accountBalance(a)),
     ],
   );
   const total = ACCOUNTS.filter(
     (a) => !memberId || a.memberId === memberId,
-  ).reduce((s, a) => s + a.balance, 0);
+  ).reduce((s, a) => s + accountBalance(a), 0);
 
   return frameDoc(
     t,
@@ -78,16 +80,16 @@ export function accountsPage(t: Tenant, memberId?: string): string {
 }
 
 export function transactionsPage(t: Tenant, memberId?: string): string {
-  const rows = TRANSACTIONS.filter(
-    (x) => !memberId || x.memberId === memberId,
-  ).map((x) => [
-    esc(x.posted),
-    esc(x.account),
-    esc(x.description),
-    esc(x.type),
-    num(x.amount),
-    num(x.balance),
-  ]);
+  const rows = [...adjustmentTxns(), ...TRANSACTIONS]
+    .filter((x) => !memberId || x.memberId === memberId)
+    .map((x) => [
+      esc(x.posted),
+      esc(x.account),
+      esc(x.description),
+      esc(x.type),
+      num(x.amount),
+      num(x.balance),
+    ]);
   return frameDoc(
     t,
     panel(
@@ -100,7 +102,8 @@ export function transactionsPage(t: Tenant, memberId?: string): string {
          </tr></table>
        </form>
        ${grid(["Posted", "Account", "Description", "Type", "Amount", "Running Balance"], rows)}
-       <p class="hint">Showing posted items for the current business day and the preceding 30 days.</p>`,
+       <p class="hint">Showing posted items for the current business day and the preceding 30 days.</p>
+       <p><a href="/t/${t.id}/frame/adjustment">${esc(t.labels.postAdjustment)}</a></p>`,
       900,
     ),
   );

@@ -3,7 +3,11 @@ import { join } from "node:path";
 import { randomUUID } from "node:crypto";
 import { Capability } from "../core/artifact.js";
 import { urlMatchesEntry } from "../core/policy.js";
-import { discover, type DiscoverOptions } from "../agent/loop.js";
+import {
+  discover,
+  type DiscoverOptions,
+  type ConfirmRequest,
+} from "../agent/loop.js";
 
 /**
  * Authoring: running discovery on demand, and editing what it produced.
@@ -97,6 +101,14 @@ export type DiscoveryJob = {
   lastAction?: string;
   /** Absolute ms timestamp the wall-clock budget expires at. */
   deadline?: number;
+  /**
+   * Set while the run is parked waiting for an operator to allow a risky step.
+   *
+   * "Running" and "running but waiting on you" are different states, and a
+   * progress panel that renders them identically will be watched until the
+   * escalation times out.
+   */
+  awaiting?: { interventionId: string; intent: string; reason: string };
 };
 
 const jobs = new Map<string, DiscoveryJob>();
@@ -138,9 +150,20 @@ export type StartDiscoveryInput = {
   maxSteps?: number;
 };
 
+/**
+ * Host-supplied capabilities the authoring module deliberately does not own.
+ *
+ * Whether there is a human to ask is a property of how discovery was started,
+ * not of discovery. The CLI passes nothing and keeps the unattended refusal.
+ */
+export type DiscoveryHooks = {
+  onConfirm?: (c: ConfirmRequest, job: DiscoveryJob) => Promise<boolean>;
+};
+
 export function startDiscovery(
   input: StartDiscoveryInput,
   secrets: Record<string, string>,
+  hooks: DiscoveryHooks = {},
 ): { job: DiscoveryJob } | { error: string } {
   const apiKey = process.env.NVIDIA_API_KEY;
   if (!apiKey)
@@ -216,6 +239,17 @@ export function startDiscovery(
     baseUrl: process.env.NVIDIA_BASE_URL,
     maxSteps: input.maxSteps ?? 25,
     signal: ctl.signal,
+    ...(hooks.onConfirm
+      ? {
+          onConfirm: async (c: ConfirmRequest) => {
+            try {
+              return await hooks.onConfirm!(c, job);
+            } finally {
+              delete job.awaiting;
+            }
+          },
+        }
+      : {}),
     onProgress: (p) =>
       Object.assign(job, {
         runId: p.runId,

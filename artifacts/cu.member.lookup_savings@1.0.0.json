@@ -470,9 +470,7 @@
   },
   "outcomes": [],
   "policy": {
-    "allowedOrigins": [
-      "http://127.0.0.1:8080"
-    ],
+    "allowedOrigins": ["http://127.0.0.1:8080"],
     "allowedActions": [
       "navigate",
       "click",

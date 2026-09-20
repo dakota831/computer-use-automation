@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { classifyActionRisk } from "../src/core/policy.js";
+import { recordCapability } from "../src/agent/recorder.js";
 import { describeTarget, deriveCheckpoint } from "../src/agent/recorder.js";
 import type { Observation, SurfaceNode } from "../src/surface/types.js";
 
@@ -27,6 +28,143 @@ const obs = (
   nodes: [],
   text,
   capturedAt: "",
+});
+
+/**
+ * A capability that types one run's data on every future run is broken in a
+ * way nothing downstream can detect: it replays cleanly and does the wrong
+ * thing. Found when a model typed "100001-S0" for an account number supplied
+ * as "0001-100001-S0", and the fragment was recorded as a constant.
+ */
+/**
+ * Two secrets with the same value used to collide in the reverse map, so the
+ * capability typed the password into the user-id field. Both credentials are
+ * "admin" in the fixture, which is why it replayed fine and was invisible.
+ */
+describe("templates survive substitution", () => {
+  const OBS = obs("Teller Sign In");
+  const typed = (template: string, value: string) => ({
+    stepId: "s1_type",
+    intent: "Enter it",
+    kind: "type" as const,
+    node: { ref: "r", role: "textbox", label: "User ID" } as any,
+    value,
+    template,
+    before: OBS,
+    after: OBS,
+  });
+  const rec = (actions: any[]) =>
+    recordCapability({
+      id: "cu.test",
+      title: "t",
+      description: "d",
+      goal: "g",
+      entryPoint: "http://127.0.0.1:8080/t/firstcu",
+      vendorApp: "corelink-teller",
+      parameters: {},
+      secretValues: {
+        "corelink.username": "admin",
+        "corelink.password": "admin",
+      },
+      actions,
+      finalObservation: obs("Member Detail"),
+      outputs: [],
+      provenance: { provider: "t", model: "t", runId: "r", transcript: "" },
+    });
+
+  it("keeps each credential distinct when both resolve to the same string", () => {
+    const c = rec([
+      typed("{{secret:corelink.username}}", "admin"),
+      { ...typed("{{secret:corelink.password}}", "admin"), stepId: "s2_type" },
+    ]);
+    expect((c.steps[0]!.action as any).value).toBe(
+      "{{secret:corelink.username}}",
+    );
+    expect((c.steps[1]!.action as any).value).toBe(
+      "{{secret:corelink.password}}",
+    );
+  });
+
+  it("never writes a secret's literal value into the artifact", () => {
+    const c = rec([typed("{{secret:corelink.username}}", "admin")]);
+    expect(JSON.stringify(c)).not.toContain('"admin"');
+  });
+
+  it("still infers a template for an action that carries none", () => {
+    const c = rec([{ ...typed("", "admin"), template: undefined }]);
+    expect((c.steps[0]!.action as any).value).toMatch(/\{\{secret:corelink\./);
+  });
+});
+
+describe("mangled parameter detection", () => {
+  const rec = (typed: string) =>
+    recordCapability({
+      id: "cu.test",
+      title: "t",
+      description: "d",
+      goal: "g",
+      entryPoint: "http://127.0.0.1:8080/t/firstcu",
+      vendorApp: "corelink-teller",
+      parameters: {
+        accountNumber: {
+          value: "0001-100001-S0",
+          spec: {
+            type: "string" as const,
+            required: true,
+            description: "acct",
+            sensitivity: "pii" as const,
+          },
+        },
+      },
+      secretValues: {},
+      actions: [
+        {
+          stepId: "s1_type",
+          intent: "Enter the account",
+          kind: "type",
+          node: {
+            ref: "ref_1",
+            role: "textbox",
+            label: "Account Number",
+          } as any,
+          value: typed,
+          before: obs("Post Adjustment"),
+          after: obs("Post Adjustment"),
+        } as any,
+      ],
+      finalObservation: obs("Entry Posted"),
+      outputs: [],
+      provenance: {
+        provider: "test",
+        model: "test",
+        runId: "r1",
+        transcript: "",
+      },
+    });
+
+  it("flags a fragment of a supplied value", () => {
+    const step = rec("100001-S0").steps[0]!;
+    expect(step.reviewNote).toMatch(/mangled reference/);
+    expect(step.reviewNote).toMatch(/\{\{accountNumber\}\}/);
+  });
+
+  it("flags a value that swallowed the supplied one", () => {
+    expect(rec("0001-100001-S0-X").steps[0]!.reviewNote).toBeDefined();
+  });
+
+  it("does not flag the parameter typed correctly", () => {
+    const step = rec("0001-100001-S0").steps[0]!;
+    expect(step.reviewNote).toBeUndefined();
+    expect((step.action as any).value).toBe("{{accountNumber}}");
+  });
+
+  it("does not flag a deliberate constant", () => {
+    expect(rec("Maintenance Fee").steps[0]!.reviewNote).toBeUndefined();
+  });
+
+  it("does not flag something too short to be a coincidence check", () => {
+    expect(rec("S0").steps[0]!.reviewNote).toBeUndefined();
+  });
 });
 
 describe("classifyActionRisk", () => {
@@ -75,6 +213,44 @@ describe("classifyActionRisk", () => {
   // confirmation, a false "safe" costs an unapproved irreversible action.
   it("prefers over-classifying to under-classifying", () => {
     expect(classifyActionRisk("click", "Open Sub-Account")).not.toBe("safe");
+  });
+
+  /**
+   * The case the first version got backwards: it gated the link into the form
+   * and waved through the button that actually moved the money.
+   */
+  it("escalates a committing control to the consequence of its screen", () => {
+    const postingScreen =
+      "Post Adjustment Account Number Amount Description A posted entry cannot be reversed";
+    expect(classifyActionRisk("click", "Confirm", postingScreen)).toBe(
+      "irreversible",
+    );
+    expect(classifyActionRisk("click", "Submit", postingScreen)).toBe(
+      "irreversible",
+    );
+  });
+
+  it("leaves a committing control alone on a harmless screen", () => {
+    const filterScreen = "Account Register Filter by Member ID Apply Filter";
+    expect(classifyActionRisk("click", "Apply Filter", filterScreen)).toBe(
+      "risky",
+    );
+    expect(classifyActionRisk("click", "Save", "Workstation Preferences")).toBe(
+      "risky",
+    );
+  });
+
+  it("still judges an explicit label without any context", () => {
+    expect(classifyActionRisk("click", "Post Adjustment")).toBe("irreversible");
+    expect(classifyActionRisk("click", "Confirm")).toBe("risky");
+  });
+
+  it("does not let a dangerous-sounding screen promote a navigation click", () => {
+    // Only controls that commit inherit the screen's consequence. Moving
+    // around a dangerous screen is not itself dangerous.
+    const postingScreen = "Post Adjustment Account Number Amount";
+    expect(classifyActionRisk("click", "Members", postingScreen)).toBe("safe");
+    expect(classifyActionRisk("type", "Amount", postingScreen)).toBe("safe");
   });
 });
 

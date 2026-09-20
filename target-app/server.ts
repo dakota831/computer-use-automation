@@ -1,7 +1,18 @@
 import express from "express";
 import type { Request, Response } from "express";
 import { TENANTS, DEFAULT_TENANT, type Tenant } from "./tenants.js";
-import { MEMBERS, CREDENTIALS, type Member } from "./data.js";
+import {
+  MEMBERS,
+  CREDENTIALS,
+  ACCOUNTS,
+  accountBalance,
+  adjustments,
+  postAdjustment,
+  resetLedger,
+  memberSavings,
+  money,
+  type Member,
+} from "./data.js";
 import {
   accountsPage,
   transactionsPage,
@@ -246,8 +257,9 @@ app.post("/t/:tenant/search", (req, res) => {
 
 // ---------------------------------------------------------------- member detail
 
-const money = (n: number) =>
-  `$${n.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")}`;
+// `money` comes from data.ts. There used to be a second copy here that did not
+// sign negatives - harmless while every figure on this screen was a balance,
+// wrong the moment an adjustment could be a debit.
 
 function detailRows(t: Tenant, m: Member): string {
   const nameCell = `<tr><td align="right">Name:</td><td>${esc(m.name)}</td></tr>`;
@@ -256,7 +268,7 @@ function detailRows(t: Tenant, m: Member): string {
     <tr><td align="right">${esc(t.labels.memberId)}:</td><td>${esc(m.memberId)}</td></tr>
     ${t.resultColumnsSwapped ? statusCell + nameCell : nameCell + statusCell}
     <tr><td align="right">SSN:</td><td>***-**-${esc(m.ssnLast4)}</td></tr>
-    <tr><td align="right">${esc(t.labels.savings)}:</td><td>${money(m.savingsBalance)}</td></tr>
+    <tr><td align="right">${esc(t.labels.savings)}:</td><td>${money(memberSavings(m))}</td></tr>
     <tr><td align="right">Checking Balance:</td><td>${money(m.checkingBalance)}</td></tr>
   </table>`;
 }
@@ -337,7 +349,9 @@ app.get("/t/:tenant/frame/member", async (req, res) => {
       panel(
         "Member Detail",
         `${detailRows(t, m)}
-       <br><a href="${base(t)}/frame/subaccount?id=${esc(id)}">${esc(t.labels.openSubAccount)}</a>`,
+       <br><a href="${base(t)}/frame/subaccount?id=${esc(id)}">${esc(t.labels.openSubAccount)}</a>
+       &nbsp;|&nbsp;
+       <a href="${base(t)}/frame/adjustment">${esc(t.labels.postAdjustment)}</a>`,
       ),
     ),
   );
@@ -415,6 +429,162 @@ app.get("/t/:tenant/frame/confirm", (req, res) => {
       ),
     ),
   );
+});
+
+// ---------------------------------------------------------------- adjustment (irreversible)
+//
+// The second write action, and the more consequential one: it moves money.
+// There is no reversal screen, which is the point - a capability that drives
+// this is exactly the kind that must be reviewed and approved before it is
+// allowed to run unattended.
+//
+// Headings here deliberately avoid every string an existing checkpoint asserts
+// on ("Member Detail", "Member Search", "Account Nickname", "Sub-Account
+// Created"), for the reason given in tenants.ts: assertions match all visible
+// text, so a colliding heading would make a checkpoint pass on the wrong screen.
+
+const ADJUSTMENT_TYPES = ["Fee", "Deposit", "Withdrawal"] as const;
+
+function adjustmentForm(
+  t: Tenant,
+  opts: { account: string; message?: string; kind?: "err" | "warn" },
+): string {
+  const notice =
+    opts.message === undefined
+      ? ""
+      : opts.kind === "warn"
+        ? warnBox(opts.message)
+        : errorBox(opts.message);
+  return frameDoc(
+    t,
+    panel(
+      t.labels.postAdjustment,
+      `${notice}
+      <form method="post" action="${base(t)}/adjustment">
+        <table>
+          ${fieldRow("Account Number", `${t.controlPrefix}txtAdjAccount`, "text", opts.account, true)}
+          <tr><td align="right" class="datalbl">Entry Type:</td>
+              <td><select name="${t.controlPrefix}ddlAdjType">
+                ${ADJUSTMENT_TYPES.map((k) => `<option value="${k}">${k}</option>`).join("")}
+              </select></td></tr>
+          ${fieldRow("Amount", `${t.controlPrefix}txtAdjAmount`, "text", "", true)}
+          ${fieldRow(t.labels.memo, `${t.controlPrefix}txtAdjMemo`, "text", "", true)}
+          <tr><td></td><td><input type="submit" name="${t.controlPrefix}btnPostAdj" value="${esc(t.labels.confirm)}"></td></tr>
+        </table>
+      </form>
+      <p class="hint">A posted entry cannot be reversed from this screen. Contact your supervisor for a correcting entry.</p>`,
+      620,
+    ),
+  );
+}
+
+app.get("/t/:tenant/frame/adjustment", (req, res) => {
+  const t = tenantOf(req);
+  if (!sessionOf(req)) return expired(t, res);
+  res.send(adjustmentForm(t, { account: String(req.query.acct ?? "") }));
+});
+
+app.post("/t/:tenant/adjustment", (req, res) => {
+  const t = tenantOf(req);
+  const sess = sessionOf(req);
+  if (!sess) return expired(t, res);
+
+  const account = String(
+    req.body[`${t.controlPrefix}txtAdjAccount`] ?? "",
+  ).trim();
+  const memo = String(req.body[`${t.controlPrefix}txtAdjMemo`] ?? "");
+  const rawType = String(req.body[`${t.controlPrefix}ddlAdjType`] ?? "Fee");
+  const type = (ADJUSTMENT_TYPES as readonly string[]).includes(rawType)
+    ? (rawType as (typeof ADJUSTMENT_TYPES)[number])
+    : "Fee";
+  const amount = Number(
+    String(req.body[`${t.controlPrefix}txtAdjAmount`] ?? "").replace(
+      /[$,\s]/g,
+      "",
+    ),
+  );
+
+  // A restricted member's records are not postable either. Checked before the
+  // ledger so the refusal reads the same as it does on the member record.
+  const acct = ACCOUNTS.find((a) => a.number === account);
+  if (acct && MEMBERS[acct.memberId]?.scenario === "permission_denied") {
+    return res.send(
+      adjustmentForm(t, {
+        account,
+        message:
+          "You do not have permission to post to this member record. Contact your supervisor.",
+      }),
+    );
+  }
+
+  const result = postAdjustment({
+    account,
+    description: memo,
+    amount,
+    type,
+    teller: sess.user,
+  });
+
+  if (!result.ok) {
+    const message = {
+      no_account: "No account found matching the number supplied.",
+      not_open: "This account is not open for posting.",
+      bad_amount: "Enter an amount greater than zero.",
+    }[result.reason];
+    return res.send(
+      adjustmentForm(t, {
+        account,
+        message,
+        kind: result.reason === "bad_amount" ? "warn" : "err",
+      }),
+    );
+  }
+
+  res.redirect(
+    `${base(t)}/frame/adjustment-receipt?ref=${result.adjustment.reference}`,
+  );
+});
+
+app.get("/t/:tenant/frame/adjustment-receipt", (req, res) => {
+  const t = tenantOf(req);
+  if (!sessionOf(req)) return expired(t, res);
+  const ref = String(req.query.ref ?? "");
+  const a = adjustments().find((x) => x.reference === ref);
+  if (!a)
+    return res.send(
+      frameDoc(t, panel("Entry Posted", errorBox("No such reference."))),
+    );
+  const acct = ACCOUNTS.find((x) => x.number === a.account)!;
+  res.send(
+    frameDoc(
+      t,
+      panel(
+        "Entry Posted",
+        `<table>
+         <tr><td align="right">Reference:</td><td>${esc(a.reference)}</td></tr>
+         <tr><td align="right">Account:</td><td>${esc(a.account)}</td></tr>
+         <tr><td align="right">Entry Type:</td><td>${esc(a.type)}</td></tr>
+         <tr><td align="right">${esc(t.labels.memo)}:</td><td>${esc(a.description)}</td></tr>
+         <tr><td align="right">Amount:</td><td>${money(a.amount)}</td></tr>
+         <tr><td align="right">Resulting Balance:</td><td>${money(accountBalance(acct))}</td></tr>
+       </table>
+       <p class="hint">Posted by ${esc(a.teller)}. This entry is final.</p>`,
+        620,
+      ),
+    ),
+  );
+});
+
+/**
+ * Return the application to its seed.
+ *
+ * A test hook, not a teller feature - it is not linked from any screen. The
+ * evidence harness calls it so a committed replay matrix prints the same
+ * balances whatever was posted while somebody was clicking around.
+ */
+app.post("/t/:tenant/admin/reset-ledger", (_req, res) => {
+  resetLedger();
+  res.json({ ok: true });
 });
 
 // ------------------------------------------------------- application sections
