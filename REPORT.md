@@ -27,6 +27,20 @@ web/           operator console (React, served by the same process)
 target-app/    synthetic legacy surface, two tenants
 ```
 
+Three surfaces, split by audience rather than by technology — the application an agent
+drives, the console a human rescues it from, and the API another agent calls:
+
+| surface | audience | auth |
+|---|---|---|
+| `teller.dexdash.cloud` | the target application | open (synthetic data) |
+| `console.dexdash.cloud` | a human operator | authenticated |
+| `api.dexdash.cloud` | a calling agent | authenticated |
+
+The console and the API share one process, because they are two views of the same state:
+the catalog is how a capability is invoked, and the console is where a stuck one is
+rescued. Splitting them would mean shipping a live browser-session handle across a
+process boundary for no benefit at this size.
+
 **The load-bearing decision is the `Surface` seam.** Nothing above it imports Playwright
 or CDP. Perception is the accessibility tree — `Accessibility.getFullAXTree` over a CDP
 session — not the DOM, because role/name/value is the one vocabulary that also exists on
@@ -153,9 +167,21 @@ the action — a dismissed interstitial has usually already advanced the app pas
 the step was trying to reach, and blindly retrying looks for a control that is no longer
 there.
 
-On UI drift specifically: the brief is right that these apps are stable, so ranked
-fallbacks plus loud logging when a low-confidence strategy is reached is the proportionate
-answer. Drift shows up as a rise in fallback usage before it shows up as failure.
+**On UI drift**, the brief is right that these apps are stable, so ranked fallbacks plus
+loud logging when a low-confidence strategy is reached is the proportionate answer: drift
+shows up as a rise in fallback usage before it shows up as failure.
+
+That got tested by accident. Late in the project the target application was restyled from
+a bare page into something that looks like real institutional software — per-tenant crest,
+branded header, menu bar, breadcrumb, status bar, footer — and the navigation flow changed
+with it, so signing in became a full top-frame transition rather than an in-frame
+redirect. **Every recorded capability still replayed correctly: 7/7 scenarios, identical
+outcomes, no artifact edited.**
+
+A descriptor that says "the textbox whose left-hand label reads Member ID" is indifferent
+to a new header, a different palette, an added menu bar and a changed navigation model. A
+CSS selector or a coordinate would have broken on any one of them. This is the clearest
+evidence in the project for §2's targeting decisions.
 
 ---
 
@@ -238,6 +264,13 @@ steps ran unattended, escalates; a named operator attaches to the live session, 
 screencast frames, is refused input until taking control, takes it, acts, approves; the run
 resumes and completes, returning `reference: SA-4401`.
 
+The console is a working surface, not a mock: an escalation queue, the live session with
+its screencast canvas, a capability catalog with an invoke form generated from the
+declared input schema, and a browsable evidence trail for every run. It carries a command
+palette, keyboard navigation and an auto-refresh you can pause — an operator investigating
+an incident needs the screen to hold still. A tool built on accessibility trees is also
+keyboard-navigable and announces its own state changes, which felt like the minimum.
+
 **Deliberately minimal:** operator identity is a string supplied by the caller. In
 production it comes from the institution's SSO, because "who took control" has to name a
 person. The field is threaded through every transfer so that substitution is local.
@@ -319,6 +352,14 @@ itself.
    and report which resolved via fallback strategies. Drift becomes a dashboard rather than
    an incident, and the data is already in the run logs.
 3. **A desktop adapter**, to prove the seam rather than assert it.
+
+**On the amount of UI.** The operator console is larger than a take-home strictly needs.
+It exists because §3.6 requires a human to take control of a live session, and that is not
+something a stub can demonstrate honestly — the screencast, the control lease and the
+server-side input gate are the requirement, and they need a surface. The public site and
+the catalog views grew from the same place. The load-bearing engineering is still the
+schema, the replay engine and the control-transfer model; the UI is how those are made
+inspectable.
 
 **What I would change about what exists:** the `settle()` loop currently re-observes the
 whole accessibility tree on every poll, which is wasteful on large pages; it should diff

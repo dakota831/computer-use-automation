@@ -16,6 +16,24 @@ why each choice was made, including the bugs that produced several of them.
 
 ---
 
+## Live demo
+
+| | | |
+|---|---|---|
+| **[dexdash.cloud](https://dexdash.cloud)** | What the system is, and how the three surfaces fit together | open |
+| **[teller.dexdash.cloud](https://teller.dexdash.cloud)** | CoreLink Teller — the synthetic application the agent drives | open · `admin` / `admin` |
+| **[console.dexdash.cloud](https://console.dexdash.cloud)** | Operator console — escalations, live takeover, catalog, evidence | `admin` / `admin` |
+| **[api.dexdash.cloud](https://api.dexdash.cloud/api/capabilities)** | Capability API — saved flows as callable tools | `admin` / `admin` |
+
+The console and the API are authenticated because the console can take control of a live
+browser session; an unauthenticated remote-control endpoint on a public hostname is a real
+hole, not a theoretical one. The teller app is open — every byte of its data is fabricated
+and it is meant to be clicked around.
+
+Two tenants of the same vendor product: `/t/firstcu` and `/t/summit`.
+
+---
+
 ## Setup
 
 ```bash
@@ -115,7 +133,7 @@ Two tenants run the **same vendor product**, configured differently:
 | Savings label | "Savings Balance" | "Regular Savings" |
 | After login | straight to search | acknowledgement screen first |
 
-Sign in with `admin` / `admin`.
+Sign in with `admin` / `admin`. (Everything in this project is `admin` / `admin` — it is a demo.)
 
 ### Reproducible states
 
@@ -144,11 +162,12 @@ src/agent/     discovery loop, NIM client, recorder
 src/replay/    executor, locator resolver, outcome detection
 src/server/    control lease, escalation registry, catalog API
 src/cli/       discover | replay | catalog | serve
-web/           operator console (React + Vite + Tailwind)
+web/           operator console + public site (React + Vite + Tailwind, two entries)
 target-app/    the synthetic legacy surface
 artifacts/     saved capabilities
 evidence/      run logs, screenshots, accessibility snapshots
 deploy/        nginx vhosts and systemd units for the reference deployment
+scripts/       authoring, evidence generation, visual sweep
 ```
 
 Nothing above `src/surface/types.ts` imports Playwright or CDP. That is the seam a
