@@ -83,6 +83,8 @@ app.post("/api/capabilities/:ref/invoke", async (req, res) => {
   const cap = found.capability;
   const inputs = (req.body?.inputs ?? {}) as Record<string, unknown>;
   const attended = req.body?.attended === true;
+  const tenant =
+    typeof req.body?.tenant === "string" ? req.body.tenant : undefined;
   const mode = attended ? "replay_attended" : "replay_unattended";
 
   // The server owns the surface so the console can attach to the live session
@@ -97,6 +99,7 @@ app.post("/api/capabilities/:ref/invoke", async (req, res) => {
     const result = await replay(cap, {
       mode,
       inputs,
+      ...(tenant ? { tenant } : {}),
       secrets: (k) => SECRETS[k],
       surface,
       evidenceDir: process.env.DEX_EVIDENCE_DIR ?? "evidence",

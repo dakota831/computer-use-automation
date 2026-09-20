@@ -96,6 +96,32 @@ const capability = Capability.parse({
   },
   tenant: "base",
 
+  /**
+   * Per-tenant specialisation.
+   *
+   * Summit runs the same CoreLink product on a different host and renames
+   * several fields. Almost all of that is already absorbed by the ranked
+   * strategies in the base capability - "Member ID" then "Member Number",
+   * "Search" aliased to "Find" - so the override carries only what the base
+   * genuinely cannot know: where this institution's install lives.
+   *
+   * The aliases below are redundant with the base today. They are declared
+   * anyway because that is the shape a real per-tenant override takes, and
+   * because a tenant that renames a field *after* the base was recorded needs
+   * somewhere to say so without re-recording the flow.
+   */
+  tenantOverrides: {
+    summit: {
+      entryPoint: `${APP}/t/summit`,
+      aliases: {
+        "the Member ID field": ["Member Number"],
+        "the Search button": ["Find"],
+        "the savings balance value cell": ["Regular Savings"],
+      },
+      note: "Summit Savings FCU - CoreLink 8.4.0. Interposes an acceptable-use screen after sign-in, handled by the ACKNOWLEDGEMENT_REQUIRED recovery rule in the base capability.",
+    },
+  },
+
   inputs: [
     {
       name: "memberId",

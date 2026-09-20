@@ -203,6 +203,33 @@ export const Capability = z.object({
   /** "base" means tenant-agnostic. A tenant id means this is a specialization. */
   tenant: z.string().default("base"),
 
+  /**
+   * Per-tenant specialisation of a base capability.
+   *
+   * Hundreds of institutions run the same vendor product, so a capability
+   * belongs to the *product*, not to the tenant. Nearly all of the variation
+   * between two installs is absorbed by the ranked strategy list already: a
+   * descriptor that lists "Member ID" first and "Member Number" second resolves
+   * on both. What is left over lives here.
+   *
+   * Deliberately narrow. An override can point the flow at a different host and
+   * add label aliases. It cannot change the steps, the outcome table or the
+   * policy — if a tenant needs different *behaviour*, that is a fork worth
+   * reviewing, not a config value, and it gets its own artifact with
+   * `tenant: "<id>"`.
+   */
+  tenantOverrides: z
+    .record(
+      z.string(),
+      z.object({
+        entryPoint: z.string().optional(),
+        /** Extra label aliases, keyed by the target's `describedAs`. */
+        aliases: z.record(z.string(), z.array(z.string())).default({}),
+        note: z.string().optional(),
+      }),
+    )
+    .default({}),
+
   inputs: z.array(ParamSpec).default([]),
   outputs: z.array(OutputSpec).default([]),
   steps: z.array(Step).min(1),
@@ -248,3 +275,72 @@ export type Capability = z.infer<typeof Capability>;
 
 export const parseCapability = (raw: unknown): Capability =>
   Capability.parse(raw);
+
+/**
+ * Apply a tenant override to a base capability.
+ *
+ * Returns a new capability; the base is never mutated, so one loaded artifact
+ * can serve every tenant in the same process. Aliases are *added* to the
+ * existing ranked strategies rather than replacing them, so the base labels
+ * stay as the higher-confidence first choice and the tenant's wording is a
+ * recorded fallback — which means the run log shows plainly when a tenant
+ * needed its own alias to resolve a control.
+ */
+export function specializeForTenant(
+  cap: Capability,
+  tenantId: string,
+): Capability {
+  const ov = cap.tenantOverrides[tenantId];
+  if (!ov) return cap;
+
+  const withAliases = (
+    t: TargetDescriptor | undefined,
+  ): TargetDescriptor | undefined => {
+    if (!t) return t;
+    const extra = ov.aliases[t.describedAs];
+    if (!extra?.length) return t;
+    return {
+      ...t,
+      strategies: [
+        ...t.strategies,
+        ...extra.map((label) => ({
+          strategy:
+            t.strategies[0]?.strategy.kind === "role_name"
+              ? {
+                  kind: "role_name" as const,
+                  role: (t.strategies[0].strategy as { role: string }).role,
+                  name: label,
+                  nameMatch: "normalized" as const,
+                  aliases: [],
+                }
+              : {
+                  kind: "label_proximity" as const,
+                  labelText: label,
+                  labelMatch: "normalized" as const,
+                  relation: "right_of" as const,
+                  controlRole: "textbox",
+                },
+          confidence: 0.6,
+          rationale: `tenant "${tenantId}" override: this install labels it "${label}"`,
+        })),
+      ],
+    };
+  };
+
+  return {
+    ...cap,
+    tenant: tenantId,
+    surface: {
+      ...cap.surface,
+      entryPoint: ov.entryPoint ?? cap.surface.entryPoint,
+    },
+    steps: cap.steps.map((st) => ({
+      ...st,
+      action:
+        "target" in st.action && st.action.target
+          ? { ...st.action, target: withAliases(st.action.target)! }
+          : st.action,
+    })),
+    outputs: cap.outputs.map((o) => ({ ...o, source: withAliases(o.source)! })),
+  };
+}

@@ -28,8 +28,9 @@ computer-use-automation
             Run the LLM-driven discovery loop and save a draft capability.
             Requires NVIDIA_API_KEY.
 
-  replay    <capability-id[@version]> --input k=v [--input k=v ...] [--attended]
+  replay    <capability-id[@version]> --input k=v [...] [--attended] [--tenant <id>]
             Replay a saved capability. No model is involved.
+            --tenant applies that tenant's override to a base capability.
 
   catalog   [--tools] [--drafts]
             List saved capabilities, or emit agent tool definitions.
@@ -70,6 +71,7 @@ switch (cmd) {
       options: {
         input: { type: "string", multiple: true },
         attended: { type: "boolean" },
+        tenant: { type: "string" },
       },
       allowPositionals: false,
     });
@@ -78,6 +80,7 @@ switch (cmd) {
       mode: values.attended ? "replay_attended" : "replay_unattended",
       inputs: parseInputs(values.input ?? []),
       secrets,
+      ...(values.tenant ? { tenant: values.tenant } : {}),
       evidenceDir: process.env.DEX_EVIDENCE_DIR ?? "evidence",
     });
     console.log(JSON.stringify(result, null, 2));

@@ -14,6 +14,23 @@
     }
   },
   "tenant": "base",
+  "tenantOverrides": {
+    "summit": {
+      "entryPoint": "http://127.0.0.1:8080/t/summit",
+      "aliases": {
+        "the Member ID field": [
+          "Member Number"
+        ],
+        "the Search button": [
+          "Find"
+        ],
+        "the savings balance value cell": [
+          "Regular Savings"
+        ]
+      },
+      "note": "Summit Savings FCU - CoreLink 8.4.0. Interposes an acceptable-use screen after sign-in, handled by the ACKNOWLEDGEMENT_REQUIRED recovery rule in the base capability."
+    }
+  },
   "inputs": [
     {
       "name": "memberId",
@@ -554,7 +571,7 @@
       "model": "none"
     },
     "runId": "baseline",
-    "createdAt": "2026-09-20T18:26:12.968Z",
+    "createdAt": "2026-09-20T19:09:21.596Z",
     "transcriptSha256": "",
     "humanAssisted": true
   }

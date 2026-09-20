@@ -385,3 +385,40 @@ a human resolves the intervention.
 `tests/handoff.test.ts` covers the whole control-transfer model, including that automation
 genuinely parks and resumes, that approving a step is distinguishable from performing it,
 and both halves of the timeout (it fires when ignored; it is cancelled when answered).
+
+## D25 — Cross-tenant reuse, demonstrated rather than argued
+
+Stretch goal: one artifact recorded on a base install, applied to a second variant with
+per-variant overrides. Previously the *mechanisms* existed (ranked strategies as aliases,
+two tenants) but nothing proved they composed. Now they do.
+
+`tenantOverrides` on the capability carries only what a base recording genuinely cannot
+know — where this institution's install lives, and any label it has renamed since.
+`specializeForTenant()` returns a new capability rather than mutating, so one loaded
+artifact serves every tenant in the same process. Aliases are *appended* to the ranked
+strategies, never substituted, so the base labels stay the higher-confidence first choice
+and the tenant's wording is a recorded fallback.
+
+Deliberately narrow: an override can change the entry point and add aliases. It cannot
+change steps, outcomes or policy. A tenant needing different *behaviour* is a fork worth
+reviewing, not a config value, and gets its own artifact with `tenant: "<id>"`.
+
+**The demonstration.** `cu.member.read_savings_balance`, recorded against First Community,
+replayed against Summit — a different host, "Member Number" instead of "Member ID",
+"Find" instead of "Search", "Regular Savings" instead of "Savings Balance", swapped row
+order, and an extra acceptable-use screen after sign-in. Result: `success`, same outputs.
+`999999` still returns `MEMBER_NOT_FOUND`.
+
+The run log is the interesting part, because it shows *how*:
+
+```
+entryPoint: .../t/summit   tenant: summit
+outcome_detected: ACKNOWLEDGEMENT_REQUIRED -> recover
+recovery:         ACKNOWLEDGEMENT_REQUIRED
+resolution:       "the Member ID field" -> strategy #1 (label_proximity, conf 0.7)
+```
+
+That last line is the drift signal from REPORT §4 working in practice. Nothing failed, but
+the log records that this tenant needed a fallback strategy to resolve a control. A tenant
+whose runs start leaning on fallbacks is drifting, and it is visible well before anything
+breaks.

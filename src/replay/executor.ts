@@ -1,4 +1,5 @@
 import type { Capability, OutcomeRule, Step } from "../core/artifact.js";
+import { specializeForTenant } from "../core/artifact.js";
 import {
   ReplayFailure,
   type EvidenceRefs,
@@ -73,6 +74,11 @@ export type ReplayOptions = {
   /** Re-authentication hook, invoked by the `reauthenticate` recovery action. */
   onReauthenticate?: (surface: Surface) => Promise<void>;
   /**
+   * Replay a base capability against a specific tenant's install. Applies that
+   * tenant's override (entry point, extra label aliases) before the run starts.
+   */
+  tenant?: string;
+  /**
    * Called immediately before every action. The server passes a hook that
    * awaits the control lease, so automation parks while a human holds the
    * session rather than racing them for the same page.
@@ -81,9 +87,14 @@ export type ReplayOptions = {
 };
 
 export async function replay(
-  cap: Capability,
+  baseCapability: Capability,
   opts: ReplayOptions,
 ): Promise<ReplayResult> {
+  // Specialise before anything else, so every log line, policy check and
+  // locator resolution below sees the tenant's version of the flow.
+  const cap = opts.tenant
+    ? specializeForTenant(baseCapability, opts.tenant)
+    : baseCapability;
   const runId = newRunId("replay");
   const log = new RunLogger(runId, "replay", { baseDir: opts.evidenceDir });
   const started = Date.now();
@@ -98,6 +109,8 @@ export async function replay(
     status: cap.status,
     mode: opts.mode,
     tenant: cap.tenant,
+    specializedFrom: opts.tenant ? baseCapability.tenant : undefined,
+    entryPoint: cap.surface.entryPoint,
     inputKeys: Object.keys(opts.inputs),
   });
 

@@ -1,0 +1,11 @@
+{
+  "runId": "replay-2026-09-20T19-09-52-dwab5",
+  "mode": "replay",
+  "finishedAt": "2026-09-20T19:09:55.851Z",
+  "events": 25,
+  "redactions": {
+    "field_pii": 1
+  },
+  "status": "success",
+  "durationMs": 3446
+}
