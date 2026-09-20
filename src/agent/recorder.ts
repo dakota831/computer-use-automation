@@ -11,7 +11,7 @@ import {
 } from "../core/artifact.js";
 import type { TargetDescriptor, RankedStrategy } from "../core/targeting.js";
 import type { Observation, SurfaceNode } from "../surface/types.js";
-import { defaultPolicy } from "../core/policy.js";
+import { defaultPolicy, classifyActionRisk } from "../core/policy.js";
 
 /**
  * The recorder: turns a successful discovery run into a reusable capability.
@@ -177,8 +177,20 @@ export function deriveCheckpoint(
   if (marker)
     all.push({ kind: "text_present", text: marker, match: "normalized" });
 
+  /**
+   * A frame that appeared, or navigated, since the action.
+   *
+   * Only real http(s) URLs count. A frame that has been created but not yet
+   * navigated reports an empty url, which is absent from the "before" set and
+   * therefore looks like a navigation — and then fails to parse. Guarding here
+   * rather than at the parse keeps the intent explicit: about:blank is not a
+   * destination worth asserting on.
+   */
+  const navigable = (u: string) => /^https?:\/\//i.test(u);
   const beforeUrls = new Set(before.frames.map((f) => f.url));
-  const movedTo = after.frames.find((f) => !beforeUrls.has(f.url));
+  const movedTo = after.frames.find(
+    (f) => navigable(f.url) && !beforeUrls.has(f.url),
+  );
   if (movedTo) {
     const path = new URL(movedTo.url).pathname.replace(
       /\/\d+(?=\/|$)/g,
@@ -407,21 +419,7 @@ export function recordCapability(opts: RecordOptions): Capability {
   });
 }
 
-/**
- * Conservative risk classification at record time.
- *
- * Heuristic and deliberately pessimistic: a false "risky" costs one human
- * confirmation, a false "safe" costs an irreversible action nobody approved.
- * A human adjusts these during review, before the capability is ever approved.
- */
+/** Risk at record time, using the shared heuristic so discovery and recording agree. */
 function classifyRisk(a: RecordedAction): Step["riskClass"] {
-  if (a.kind !== "click") return "safe";
-  const label = `${a.node?.label ?? ""} ${a.intent}`.toLowerCase();
-  if (
-    /\b(transfer|withdraw|delete|remove|post|close account|wire)\b/.test(label)
-  )
-    return "irreversible";
-  if (/\b(submit|confirm|save|create|open|add|apply|update)\b/.test(label))
-    return "risky";
-  return "safe";
+  return classifyActionRisk(a.kind, `${a.node?.label ?? ""} ${a.intent}`);
 }

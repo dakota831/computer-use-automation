@@ -1,6 +1,10 @@
 import type { Capability, ParamSpec, OutputSpec } from "../core/artifact.js";
 import { DiscoveryError } from "../core/errors.js";
-import { PolicyEngine, defaultPolicy } from "../core/policy.js";
+import {
+  PolicyEngine,
+  defaultPolicy,
+  classifyActionRisk,
+} from "../core/policy.js";
 import { RunLogger, newRunId } from "../core/log.js";
 import { redactor } from "../core/redact.js";
 import { resolveTemplate } from "../core/template.js";
@@ -62,6 +66,25 @@ export type DiscoverResult = {
   modelCalls: number;
   durationMs: number;
   evidenceDir: string;
+};
+
+/**
+ * The policy engine inspects an action's *type* and the current URL, not its
+ * target, so discovery can hand it a placeholder descriptor. Kept explicit
+ * rather than cast to `any` so a future policy that does read the target fails
+ * to compile here instead of silently checking nothing.
+ */
+const step0Target = {
+  describedAs: "(proposed by the agent)",
+  framePath: [],
+  strategies: [
+    {
+      strategy: { kind: "css" as const, selector: ":root" },
+      confidence: 0,
+      rationale: "placeholder for policy evaluation only",
+    },
+  ],
+  ambiguityPolicy: "fail" as const,
 };
 
 export async function discover(opts: DiscoverOptions): Promise<DiscoverResult> {
@@ -304,33 +327,65 @@ export async function discover(opts: DiscoverOptions): Promise<DiscoverResult> {
         }
 
         // --- policy, before the action, not after -------------------------
-        const proposed =
+        //
+        // Risk is classified from what the model is about to click, using the
+        // same heuristic the recorder applies when writing a step. Passing a
+        // flat "safe" here would mean discovery never gated anything, which
+        // would make the guarantee in REPORT §6 untrue.
+        // Gate on the control's own label, not the model's prose. The label is what a
+        // human would read before clicking; `why` is free text and a run explained as
+        // "submit the search" would otherwise be refused for saying the word.
+        const actionRisk = classifyActionRisk(name, node?.label ?? "");
+        const proposedAction =
           name === "click"
-            ? ({ type: "click" } as const)
+            ? { type: "click" as const, target: step0Target }
             : name === "type"
-              ? ({ type: "type" } as const)
-              : ({ type: "press" } as const);
-        const verdict = policy.check(
-          {
-            ...(proposed as any),
-            target: undefined,
-            value: "",
-            key: args.key,
-          } as any,
-          "safe",
-          surface.url(),
-        );
+              ? {
+                  type: "type" as const,
+                  target: step0Target,
+                  value: "",
+                  clearFirst: true,
+                }
+              : { type: "press" as const, key: String(args.key ?? "Enter") };
+
+        const verdict = policy.check(proposedAction, actionRisk, surface.url());
         log.event("policy_verdict", {
           step: stepNo,
           stepId,
           tool: name,
+          riskClass: actionRisk,
           ...verdict,
         });
+
         if (verdict.decision === "deny") {
           messages.push({
             role: "tool",
             tool_call_id: call.id,
             content: `Refused by policy: ${verdict.reason}`,
+          });
+          continue;
+        }
+
+        if (verdict.decision === "confirm") {
+          /**
+           * Discovery has no human attached, so a step this risky is refused
+           * rather than performed. Recording an irreversible step is a
+           * deliberate authoring act, not something a model does unsupervised —
+           * and the model is told plainly so it can stop instead of retrying.
+           */
+          log.event("escalation_raised", {
+            step: stepNo,
+            stepId,
+            reason: verdict.reason,
+            url: surface.url(),
+            resolution: "refused_during_discovery",
+          });
+          messages.push({
+            role: "tool",
+            tool_call_id: call.id,
+            content:
+              `Refused: ${verdict.reason}. Discovery runs unattended, so this action needs a human. ` +
+              `If the goal cannot be completed without it, call "blocked" and explain.`,
           });
           continue;
         }

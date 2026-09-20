@@ -185,7 +185,6 @@ export class WebSurface implements Surface, RemoteControllable {
         if (!interactive && !readable && !CONTAINER_ROLES.has(role)) continue;
         if (role === "StaticText") continue;
 
-        const ref = `ref_${++this.refSeq}`;
         const backendNodeId = ax.backendDOMNodeId as number | undefined;
 
         let label = name;
@@ -212,6 +211,11 @@ export class WebSurface implements Surface, RemoteControllable {
 
         if (interactive && !label) continue; // unaddressable; nothing useful to record
         if (readable && !label && !adjacentLabel) continue;
+
+        // Numbered only once the node is known to be kept, so the refs the
+        // model sees are contiguous rather than pocked with gaps where skipped
+        // nodes consumed a number.
+        const ref = `ref_${++this.refSeq}`;
 
         const node: SurfaceNode = {
           ref,

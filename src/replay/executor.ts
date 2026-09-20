@@ -44,6 +44,17 @@ import {
  * structural here rather than a matter of care.
  */
 
+/**
+ * Absolute ceiling on how many times one step may be attempted, regardless of
+ * what any outcome rule says.
+ *
+ * Per-rule `maxAttempts` bounds each *recoverable* condition, but an escalate
+ * disposition that a human keeps resuming, or two rules alternating, could
+ * otherwise cycle indefinitely. A run that cannot get past one step in eight
+ * tries is not going to; failing loudly beats spinning.
+ */
+const HARD_STEP_ATTEMPT_CAP = 8;
+
 export type EscalationContext = {
   runId: string;
   capability: Capability;
@@ -282,6 +293,20 @@ export async function replay(
 
       for (;;) {
         attempt++;
+        if (attempt > HARD_STEP_ATTEMPT_CAP) {
+          const shot = await snap(`attempt-cap-${step.id}`);
+          return fail(
+            new ReplayFailure({
+              code: "RECOVERY_EXHAUSTED",
+              message: `step "${step.id}" was attempted ${HARD_STEP_ATTEMPT_CAP} times without reaching a terminal state`,
+              stepId: step.id,
+              expected: "the step to complete, or a rule to resolve it",
+              observed: `attempt cap reached at ${surface.url()}`,
+              evidence: { ...evidence, screenshotPath: shot },
+            }),
+            shot,
+          );
+        }
         log.event("step_started", {
           stepId: step.id,
           intent: step.intent,

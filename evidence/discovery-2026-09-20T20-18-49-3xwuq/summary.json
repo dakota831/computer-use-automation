@@ -1,0 +1,12 @@
+{
+  "runId": "discovery-2026-09-20T20-18-49-3xwuq",
+  "mode": "discovery",
+  "finishedAt": "2026-09-20T20:19:10.333Z",
+  "events": 26,
+  "redactions": {
+    "field_by_key": 33
+  },
+  "status": "success",
+  "steps": 5,
+  "modelCalls": 8
+}

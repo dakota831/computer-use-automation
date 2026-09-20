@@ -160,6 +160,38 @@ export class PolicyEngine {
   }
 }
 
+/**
+ * Conservative risk classification from an action and the text around it.
+ *
+ * Shared by the recorder (classifying a step as it is recorded) and the
+ * discovery loop (gating an action the model just proposed), so the two cannot
+ * drift — a flow recorded as `irreversible` must be one discovery would also
+ * have stopped on.
+ *
+ * They feed it different text on purpose. The gate passes only the control's
+ * label, because that is what a human would read before clicking and because a
+ * model explaining a benign click as "submit the search" must not be blocked
+ * for the word. The recorder also passes the step intent, since its output is a
+ * suggestion a reviewer sees rather than a decision that halts a run.
+ *
+ * Deliberately pessimistic: a false "risky" costs one human confirmation, a
+ * false "safe" costs an irreversible action nobody approved. It is a heuristic
+ * and is meant to prompt review, not replace it.
+ */
+export function classifyActionRisk(kind: string, text: string): RiskClass {
+  if (kind !== "click") return "safe";
+  const t = text.toLowerCase();
+  if (
+    /\b(transfer|withdraw|delete|remove|post|close account|wire|disburse)\b/.test(
+      t,
+    )
+  )
+    return "irreversible";
+  if (/\b(submit|confirm|save|create|open|add|apply|update|approve)\b/.test(t))
+    return "risky";
+  return "safe";
+}
+
 /** Default policy for a freshly discovered capability: least privilege. */
 export function defaultPolicy(entryPoint: string): Capability["policy"] {
   const origin = (() => {

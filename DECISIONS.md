@@ -527,3 +527,43 @@ I also wasted one attempt patching the first `className="no-underline"` in the f
 was a button rather than the card. Measuring beat guessing: walking the DOM for elements
 whose right edge exceeded the viewport found it in one pass, after three edits based on
 plausible theories had not.
+
+## D31 — What a line-by-line review turned up
+
+Four defects, found by reading rather than by a failing test.
+
+**Discovery was not gating risk at all.** `loop.ts` passed a hardcoded
+`riskClass: "safe"` into the policy engine, so an irreversible action proposed by the
+model would have been permitted — while D10 and REPORT §6 both claimed discovery pauses
+for a human on exactly that. The code was wrong, not the documentation. Risk is now
+classified from the control's label with `classifyActionRisk`, shared with the recorder so
+the two cannot disagree about what "irreversible" means.
+
+The two callers feed it different text on purpose. The gate sees only the control's label,
+because a benign click explained by the model as "submit the search" must not be refused
+for containing the word. The recorder also sees the step intent, since its output is a
+suggestion a reviewer reads rather than a decision that halts a run.
+
+**The step loop had no absolute ceiling.** Per-rule `maxAttempts` bounds each recoverable
+condition, but an `escalate` disposition a human keeps resuming could cycle forever.
+`HARD_STEP_ATTEMPT_CAP` stops any single step after eight attempts with
+`RECOVERY_EXHAUSTED`. A run that cannot pass one step in eight tries is not going to.
+
+**`new URL("")` crashed the recorder.** A frame created but not yet navigated reports an
+empty url; it is absent from the "before" set, so it looked like a navigation and then
+failed to parse — killing a discovery run at the recording stage, after all the model
+calls had been paid for. Only http(s) urls count as destinations now.
+
+**Ref numbers had gaps.** `observe()` incremented the counter before the guards that skip
+unaddressable nodes, so the model saw `ref_1, ref_4, ref_9`. Harmless but confusing;
+numbering now happens once a node is known to be kept.
+
+Also checked and found sound: Express route ordering (`/tools` really is registered before
+`/:ref`), no TODOs, no empty catches, no stray `console.log` in library code, and the
+three remaining `as any` casts are all at genuine type boundaries (CDP parameters Playwright
+does not type). The synthetic action the discovery loop hands the policy engine is now a
+real typed object rather than a cast, so a future policy that reads the target will fail to
+compile instead of silently checking nothing.
+
+`tests/recorder.test.ts` covers the risk heuristic, the targeting rank order, and both
+halves of the URL guard.
