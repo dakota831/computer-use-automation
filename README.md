@@ -218,6 +218,7 @@ adapter would implement.
 | `DEX_RATE_LIMIT_PER_MIN` · `DEX_MIN_REQUEST_SPACING_MS` | provider rate limiting, enforced inside the client |
 | `DEX_DISCOVERY_ALLOWED_ORIGINS` | where console-initiated discovery may be aimed |
 | `DEX_ESCALATION_TIMEOUT_MS` | how long an unanswered escalation holds a session |
+| `DEX_DISCOVERY_TIMEOUT_MS` | wall-clock budget for one discovery run |
 | `DEX_TARGET_PORT` · `DEX_OPERATOR_PORT` | default 8080 / 4000 |
 | `DEX_TELLER_USER` · `DEX_TELLER_PASS` | target-app credentials, resolved at act time, never logged |
 

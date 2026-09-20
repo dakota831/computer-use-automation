@@ -52,6 +52,15 @@ export type DiscoverOptions = {
   apiKey: string;
   baseUrl?: string;
   maxSteps?: number;
+  /**
+   * Wall-clock budget for the whole run.
+   *
+   * Max steps alone is not a bound: provider latency observed on the free tier
+   * ranged from 0.8s to 120s per call, so a 22-step run can be 30 seconds or
+   * 40 minutes. The brief lists timeout alongside max steps and dead-end as a
+   * stopping condition, and this is why.
+   */
+  timeoutMs?: number;
   headless?: boolean;
   evidenceDir?: string;
   perMinute?: number;
@@ -92,6 +101,10 @@ export async function discover(opts: DiscoverOptions): Promise<DiscoverResult> {
   const log = new RunLogger(runId, "discovery", { baseDir: opts.evidenceDir });
   const started = Date.now();
   const maxSteps = opts.maxSteps ?? 22;
+  const timeoutMs =
+    opts.timeoutMs ??
+    Number(process.env.DEX_DISCOVERY_TIMEOUT_MS ?? 5 * 60_000);
+  const deadline = started + timeoutMs;
 
   // Register every secret before anything can be written anywhere.
   for (const v of Object.values(opts.secrets)) redactor.registerSecret(v);
@@ -116,6 +129,7 @@ export async function discover(opts: DiscoverOptions): Promise<DiscoverResult> {
     entryPoint: opts.entryPoint,
     model: opts.model,
     maxSteps,
+    timeoutMs,
     parameters: Object.keys(opts.parameters),
     secretKeys: Object.keys(opts.secrets),
   });
@@ -189,6 +203,13 @@ export async function discover(opts: DiscoverOptions): Promise<DiscoverResult> {
     ];
 
     for (stepNo = 1; stepNo <= maxSteps; stepNo++) {
+      if (Date.now() > deadline) {
+        log.screenshot(await surface.screenshot(), "discovery-timeout");
+        throw new DiscoveryError(
+          `agent exceeded its ${Math.round(timeoutMs / 1000)}s budget after ${stepNo - 1} step(s)`,
+          "timeout",
+        );
+      }
       const res = await client.chat({
         messages,
         tools: TOOLS,

@@ -174,38 +174,59 @@ export function useHotkeys(hotkeys: Hotkey[], enabled = true): void {
           el.tagName === "SELECT" ||
           el.isContentEditable);
 
+      const key = e.key.toLowerCase();
       const combo = [
         e.metaKey || e.ctrlKey ? "mod" : "",
         e.shiftKey && e.key.length > 1 ? "shift" : "",
-        e.key.toLowerCase(),
+        key,
       ]
         .filter(Boolean)
         .join("+");
 
-      const direct = table.current.find((h) => h.keys === combo);
-      if (direct && (combo.startsWith("mod+") || !typing)) {
+      // Modifier combos win outright and work even while typing.
+      const modMatch = combo.startsWith("mod+")
+        ? table.current.find((h) => h.keys === combo)
+        : undefined;
+      if (modMatch) {
         e.preventDefault();
         pending.current = null;
-        return direct.run();
+        return modMatch.run();
       }
       if (typing) return;
 
+      /**
+       * A pending sequence is resolved BEFORE any single-key binding.
+       *
+       * Otherwise a one-key shortcut shadows every sequence ending in the same
+       * letter: `r` (toggle refresh) made `g r` (go to runs) unreachable,
+       * because the direct match fired and cleared the pending `g`.
+       */
       const prev = pending.current;
       if (prev && Date.now() - prev.at < 1200) {
-        const seq = `${prev.key} ${e.key.toLowerCase()}`;
-        const match = table.current.find((h) => h.keys === seq);
         pending.current = null;
-        if (match) {
+        const seq = table.current.find((h) => h.keys === `${prev.key} ${key}`);
+        if (seq) {
           e.preventDefault();
-          return match.run();
+          return seq.run();
         }
+        // Not a known sequence: fall through and treat the key on its own.
       }
-      if (
-        table.current.some((h) => h.keys.startsWith(`${e.key.toLowerCase()} `))
-      ) {
-        pending.current = { key: e.key.toLowerCase(), at: Date.now() };
+
+      // Start a sequence if this key prefixes one. Checked before single-key
+      // bindings so a prefix key is never also an action.
+      if (table.current.some((h) => h.keys.startsWith(`${key} `))) {
+        pending.current = { key, at: Date.now() };
+        e.preventDefault();
+        return;
+      }
+
+      const direct = table.current.find((h) => h.keys === key);
+      if (direct) {
+        e.preventDefault();
+        return direct.run();
       }
     };
+
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [enabled]);

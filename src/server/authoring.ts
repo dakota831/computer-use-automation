@@ -135,6 +135,7 @@ export function startDiscovery(
     apiKey,
     baseUrl: process.env.NVIDIA_BASE_URL,
     maxSteps: input.maxSteps ?? 22,
+    timeoutMs: Number(process.env.DEX_DISCOVERY_TIMEOUT_MS ?? 5 * 60_000),
     perMinute: Number(process.env.DEX_RATE_LIMIT_PER_MIN ?? 49),
     minSpacingMs: Number(process.env.DEX_MIN_REQUEST_SPACING_MS ?? 1300),
     evidenceDir: process.env.DEX_EVIDENCE_DIR ?? "evidence",

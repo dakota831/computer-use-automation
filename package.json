@@ -19,7 +19,8 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "evidence": "tsx scripts/generate-evidence.ts",
-    "visual": "node scripts/visual-check.mjs"
+    "visual": "node scripts/visual-check.mjs",
+    "interaction": "node scripts/interaction-check.mjs"
   },
   "dependencies": {
     "clsx": "^2.1.1",

@@ -589,3 +589,49 @@ no notion that some text is unsuitable to assert on. It does now, and
 
 Worth noting how it surfaced: not from a failing test, but from reading a rendered diff of
 two artifacts. The diff view paid for itself within an hour of existing.
+
+## D33 — "Not secure" was never the certificate
+
+Reported as a cert problem. It was not. The chain is correct — leaf, Let's Encrypt YR1,
+ISRG Root YR — the SAN covers all five names, and an independent client using only the
+system trust store validates every host.
+
+Two real causes, neither of them TLS:
+
+**No HSTS.** Typing a bare hostname makes the browser try http first. The 301 to https is
+immediate, but Chrome marks that hop "Not secure" before it lands. Added
+`Strict-Transport-Security` to every TLS server block, at `max-age=86400` and *without*
+`includeSubDomains` — HSTS is sticky, and a demo has no business pinning a year-long
+policy across every subdomain.
+
+**A cached error.** The certificate's `notBefore` is the moment it was expanded to cover
+`teller`, `console` and `api`. Any visit before that got a genuine name mismatch, and
+browsers cache that hard. Nothing server-side could have fixed it; a hard reload does.
+
+The lesson is about diagnosis rather than TLS: the fix was not on the reported component.
+Checking the chain from an independent client first, instead of adjusting nginx, is what
+kept this from turning into an afternoon of changing certificate config that was already
+right.
+
+## D34 — Two gaps the brief caught that I had not
+
+Re-reading §3 line by line against the running system, rather than against my memory of it.
+
+**A one-key shortcut was shadowing a sequence.** `useHotkeys` resolved direct matches
+before pending sequences, so `r` (toggle auto-refresh) made `g r` (go to runs)
+unreachable — a key bound on its own can silently eat every sequence ending in the same
+letter. Sequences now resolve first, and a key that prefixes one is never also an action.
+Found by driving the console rather than reading it.
+
+**The timeout stopping condition did not exist.** §3.1 lists "max steps, timeout,
+dead-end". `DiscoveryError` declared `"timeout"` as a reason and nothing ever threw it.
+Max steps is not a time bound: measured provider latency on this free tier ranged from
+0.8s to 120s per call, so a 22-step run is somewhere between thirty seconds and forty
+minutes. I hit exactly that earlier when NIM degraded mid-run. There is now a wall-clock
+budget (`DEX_DISCOVERY_TIMEOUT_MS`, default five minutes), verified in both directions:
+a 1ms budget stops the run, a normal one still completes.
+
+`scripts/interaction-check.mjs` now drives the console end to end — nineteen behaviours
+including hotkeys, the command palette, filters, the approval toggle, schema rejection on
+a bad edit, anomaly jump and the diff. The visual sweep proves pages render; this proves
+their controls do something.
