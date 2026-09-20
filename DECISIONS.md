@@ -150,3 +150,36 @@ The asymmetry between modes is the real decision. Discovery pauses for a human o
 risky action because a model chose it and nobody reviewed it. Replay cannot introduce a
 new risky action at all — it executes only recorded, approved steps — so the risk surface
 was fixed and reviewed before it ever ran unattended.
+
+## D11 — The surface seam, and a bug that proves why geometry is not a locator
+
+`src/surface/types.ts` defines what a surface owes its caller: `observe`, `resolve`,
+and a small set of actions. Nothing above that line imports Playwright or CDP. A
+desktop adapter implements the same interface, because role/name/value is exactly what
+UI Automation and the AX API expose.
+
+The web adapter keeps the accessibility tree as the source of truth for structure and
+roles, and consults the DOM only to answer "what is this control called?" when the
+platform declines to say. Order of preference, which encodes what is actually
+trustworthy on legacy markup: associated `<label>` → the table cell to the left → the
+cell above → placeholder/title → the generated `name` attribute. Verified against the
+real app: the login textboxes have no accessible name and resolve as "User ID:" and
+"Password:" purely from the adjacent cells.
+
+Actions dispatch real input events (`Input.dispatchMouseEvent`) at the control's
+coordinates rather than calling `element.click()`. That is honest to the "computer use"
+framing, and it means the human handoff forwards input through exactly the same path the
+automation uses — one code path, tested twice.
+
+**The bug worth recording.** The first implementation computed each frame's viewport
+offset with `Runtime.evaluate` in the top frame, so iframe content got offset `{0,0}`.
+Every click inside the frame landed ~37px high, into the tenant's title bar. Nothing
+errored. The form simply did not submit, and the run looked like a mysterious "login
+didn't work". Fixed by walking the frame chain with `DOM.getFrameOwner` and adding each
+owning iframe's position plus its border.
+
+This is the same class of failure as taking the first of two ambiguous matches: the
+system does something confidently wrong and reports nothing. It is the strongest
+argument in this codebase for why coordinates are recorded as evidence only and never
+used as a locator — a descriptor that resolves by role and label would have been
+unaffected by the offset bug, because it never needed to know where anything was.
