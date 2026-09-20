@@ -38,7 +38,7 @@ Newest entries are at the bottom of the file; this index groups them by subject.
 [D7](#d7--measured-against-the-real-target-app-not-assumed) measured against the real target app, not assumed  ·  [D13](#d13--two-silent-patch-failures-and-what-they-cost) two silent patch failures, and what they cost  ·  [D27](#d27--the-evidence-generator-deleted-the-evidence-it-was-meant-to-protect) the evidence generator deleted the evidence it was meant to protect
 
 **Also**  
-[D37](#d37--documentation-is-checked-not-proofread) documentation is checked, not proofread  ·  [D38](#d38--reportmd-was-twice-the-length-the-brief-asked-for) report.md was twice the length the brief asked for
+[D37](#d37--documentation-is-checked-not-proofread) documentation is checked, not proofread  ·  [D38](#d38--reportmd-was-twice-the-length-the-brief-asked-for) report.md was twice the length the brief asked for  ·  [D39](#d39--making-template-references-hard-to-get-wrong) making template references hard to get wrong
 
 ---
 
@@ -736,3 +736,36 @@ it. Measurements stayed, because they are what make the claims checkable rather 
 assertions.
 
 The split is now clean: REPORT is the argument, DECISIONS is the evidence and the history.
+
+## D39 — Making template references hard to get wrong
+
+A goal that writes `100001` where it meant `{{memberId}}` still runs, still succeeds, and
+produces a capability that only ever works for one member. Nothing errors. The cost of a
+typo here is a wasted model call and a silently useless artifact, so the references are now
+impossible to mistype:
+
+- **Every available reference is listed**, built from the parameter name the operator is
+  typing plus the secret keys the server reports. Secrets are styled as the more dangerous
+  thing.
+- **Click to insert at the caret**, **drag onto the goal**, or **type `{{` and
+  autocomplete**.
+- The server exposes secret **key names only** on `/api/discovery`. The values never leave
+  it, and the model only ever sees the reference either.
+
+**The sign-in clause is fixed.** Every flow against this application starts by signing in,
+so it is shown as a locked prefix rather than retyped — and cannot be forgotten, which was
+a real way to waste a run.
+
+Two bugs the browser test caught that the unit tests would not have:
+
+**Substring matching was wrong.** `{{m` offered `secret:corelink.username`, because
+"username" contains an "m". Technically a match, useless as a suggestion. Now prefix
+matching on the label and on each `:`/`.`-separated segment, so `{{m` gives `memberId`
+alone while `{{user` still reaches `secret:corelink.username`.
+
+**Escape did nothing.** `keyDown` closed the list and `keyUp` immediately re-ran detection
+and reopened it on the same keystroke. The dismissed token is now remembered until the
+token actually changes.
+
+Both are the kind of defect that only appears when a real keyboard drives a real browser,
+which is why `scripts/interaction-check.mjs` exists alongside the unit tests.

@@ -117,9 +117,44 @@ const diffText = await page.locator("main").innerText();
 check("diff shows the status change review made", diffText.includes('"status"'), "");
 check("diff counts additions and removals", /\+\d+/.test(diffText) && /−\d+|-\d+/.test(diffText));
 
-// --- discovery form ---------------------------------------------------------
+// --- discovery form and the goal editor -------------------------------------
 await go("/capabilities/new");
 check("discovery form renders", (await page.getByRole("button", { name: /run discovery/i }).count()) > 0);
+check("the sign-in clause is fixed, not typed each time", (await page.getByText("Sign in to the teller console,").count()) > 0);
+
+const chips = page.locator("button[draggable=true]");
+check("every available reference is offered", (await chips.count()) === 3, `${await chips.count()} chip(s)`);
+
+const goal = page.getByLabel("Goal");
+await goal.fill("");
+await goal.type("read {{m");
+await page.waitForTimeout(500);
+const sugg = await page.getByRole("option").allTextContents();
+// A substring match would also return secret:corelink.username — "username"
+// contains an "m" — which is technically a match and useless as a suggestion.
+check("typing {{m suggests only references starting with m", sugg.length === 1 && sugg[0].includes("memberId"), sugg.join(" | "));
+await page.keyboard.press("Enter");
+await page.waitForTimeout(400);
+check("accepting a suggestion closes the token", (await goal.inputValue()) === "read {{memberId}}", await goal.inputValue());
+
+await goal.fill("");
+await goal.type("use {{sec");
+await page.waitForTimeout(400);
+await page.keyboard.press("Escape");
+await page.waitForTimeout(400);
+check("escape dismisses and stays dismissed", !(await page.getByRole("listbox", { name: /template suggestions/i }).isVisible().catch(() => false)));
+
+await goal.fill("balance for ");
+await goal.click();
+await page.keyboard.press("End");
+await chips.filter({ hasText: "{{memberId}}" }).click();
+await page.waitForTimeout(400);
+check("clicking a reference inserts it at the caret", (await goal.inputValue()) === "balance for {{memberId}}", await goal.inputValue());
+
+await goal.fill("deposit ");
+await chips.filter({ hasText: "{{secret:corelink.password}}" }).dragTo(goal);
+await page.waitForTimeout(600);
+check("dragging a reference into the goal inserts it", (await goal.inputValue()).includes("{{secret:corelink.password}}"), await goal.inputValue());
 
 // --- footer: cross-surface links must leave the console ---------------------
 await go("/");

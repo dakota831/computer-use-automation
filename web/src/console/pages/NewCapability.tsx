@@ -18,6 +18,7 @@ import {
 import { useToast } from "../../shared/Toast.tsx";
 import { formatRelative } from "../../shared/hooks.ts";
 import { Crumbs, PageHead } from "../App.tsx";
+import { GoalEditor, GOAL_PREFIX, buildReferences } from "../GoalEditor.tsx";
 
 /**
  * Run discovery from the console.
@@ -43,7 +44,7 @@ export function NewCapability() {
     title: "Look up a member's savings balance",
     description:
       "Signs in, finds a member by ID, opens the record and reads the savings balance.",
-    goal: "Sign in to the teller console, look up the member whose ID is {{memberId}}, open their record, and read their savings balance and name.",
+    goal: "look up the member whose ID is {{memberId}}, open their record, and read their savings balance and name.",
     entryPoint: "http://127.0.0.1:8080/t/firstcu",
     paramName: "memberId",
     paramValue: "100001",
@@ -79,7 +80,15 @@ export function NewCapability() {
     setBusy(true);
     setErr(null);
     try {
-      setJob(await authoring.start({ ...f, maxSteps: Number(f.maxSteps) }));
+      setJob(
+        await authoring.start({
+          ...f,
+          // The fixed clause is part of the goal the agent receives; the
+          // operator only ever edits what follows it.
+          goal: GOAL_PREFIX + f.goal.trim(),
+          maxSteps: Number(f.maxSteps),
+        }),
+      );
       toast("Discovery started — the agent is driving the application", "info");
     } catch (e) {
       setErr(String(e instanceof Error ? e.message : e));
@@ -140,12 +149,19 @@ export function NewCapability() {
       <div className="grid min-w-0 gap-4 lg:grid-cols-[1.2fr_1fr]">
         <Card title="Goal">
           <div className="flex flex-col gap-3">
-            {field(
-              "goal",
-              "What should the agent accomplish",
-              "Reference run parameters as {{name}} so the recorder can templatise them.",
-              true,
-            )}
+            <div className="flex flex-col gap-1">
+              <span className="label-caps text-ink-faint">
+                What should the agent accomplish
+              </span>
+              <GoalEditor
+                value={f.goal}
+                onChange={(v) => setF({ ...f, goal: v })}
+                references={buildReferences(
+                  f.paramName,
+                  info?.secretKeys ?? [],
+                )}
+              />
+            </div>
             {field(
               "entryPoint",
               "Entry point",

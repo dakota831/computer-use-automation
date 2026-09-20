@@ -237,6 +237,8 @@ export type DiscoveryJob = {
 export type DiscoveryInfo = {
   allowedOrigins: string[];
   configured: boolean;
+  /** Names only — values never leave the server. */
+  secretKeys: string[];
   jobs: DiscoveryJob[];
 };
 

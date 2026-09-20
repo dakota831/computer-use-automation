@@ -171,6 +171,10 @@ app.get("/api/discovery", (_req, res) => {
   res.json({
     allowedOrigins: discoveryOrigins(),
     configured: Boolean(process.env.NVIDIA_API_KEY),
+    // Key NAMES only. The console needs them to offer `{{secret:...}}`
+    // references; the values never leave the server, and the model only ever
+    // sees the reference either.
+    secretKeys: Object.keys(SECRETS),
     jobs: listJobs(),
   });
 });
