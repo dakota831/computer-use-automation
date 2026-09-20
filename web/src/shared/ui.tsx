@@ -110,7 +110,7 @@ export function Card({
   return (
     <section
       {...rest}
-      className={clsx("rule bg-paper-raised shadow-hard", className)}
+      className={clsx("rule min-w-0 bg-paper-raised shadow-hard", className)}
     >
       {title && (
         <header className="rule-b flex items-center gap-3 bg-paper-sunk px-3 py-2">
@@ -142,7 +142,7 @@ export function Field({
       </dt>
       <dd
         className={clsx(
-          "min-w-0 break-words text-sm",
+          "min-w-0 max-w-full break-all whitespace-pre-wrap text-sm",
           mono && "font-mono text-xs",
         )}
       >
@@ -221,8 +221,8 @@ export function ErrorState({
 /** Scrollable on small screens rather than reflowing: these are dense data tables. */
 export function TableWrap({ children }: { children: ReactNode }) {
   return (
-    <div className="-mx-3 overflow-x-auto px-3">
-      <table className="w-full min-w-[34rem] border-collapse text-sm">
+    <div className="-mx-3 min-w-0 max-w-full overflow-x-auto px-3">
+      <table className="w-full min-w-[30rem] border-collapse text-sm">
         {children}
       </table>
     </div>

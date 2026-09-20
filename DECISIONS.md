@@ -313,3 +313,58 @@ collapsing the two would lose it.
 
 Recorded human actions log key *names*, never typed characters — an operator entering a
 member ID or a credential must not have it captured in an audit log.
+
+## D20 — Reversing D-nothing: the console needed a real router
+
+Earlier I argued a 15-line hash router was enough, because the console had three views
+and one deep link that mattered. At eight routes with parameters that stopped being true,
+so `react-router` is in. Recording the reversal rather than quietly swapping it: the
+original reasoning was sound for three views and simply stopped applying, which is the
+normal way a dependency earns its place.
+
+## D21 — Visual realism and machine hostility are independent axes
+
+The target application was restyled into something that looks like genuine institutional
+software: a per-tenant crest, a branded header, a menu bar, a breadcrumb, a session clock,
+a status bar naming the app server, and a full footer. Real bank back-office systems are
+not sparse — they are dense and heavily chromed — so a stripped-down page was an
+unrealistic target, not a neutral one.
+
+None of the properties that make it a *useful* target changed: content still lives inside
+an iframe, forms still lay out with nested tables, controls still carry generated
+`ctl00$MainContent$` names, and there are still no test IDs and no `<label for>`
+anywhere. The login fields still have no accessible name at all.
+
+**The unplanned experiment.** The restyle also changed the navigation flow — signing in is
+now a full top-frame transition rather than an in-frame redirect. Every recorded
+capability still replayed correctly afterwards: 7/7 scenarios, same outcomes.
+
+That is the locator thesis tested rather than asserted. A descriptor that says "the
+textbox whose left-hand label reads Member ID" is indifferent to a new header, a changed
+palette, an added menu bar and a different navigation model. A CSS selector or a
+coordinate would have broken on any one of them.
+
+One constraint the chrome had to respect: assertions match against all visible text,
+shell included. Menu labels are deliberately chosen not to collide with any checkpoint
+string ("Members", not "Member Search") — otherwise a nav item would make a checkpoint
+pass on every screen in the application. That is a real coupling between the app's chrome
+and the capabilities recorded against it, and it is worth knowing about.
+
+## D22 — One theme
+
+The light/dark toggle is gone. This is meant to read as institutional back-office
+software, and a theme switcher is a developer-tool affordance that undercut that. It also
+doubled the surface area every screen had to be checked against for no operational
+benefit.
+
+## D23 — The mobile overflow was a flex/grid default, not a styling mistake
+
+Two console pages overflowed horizontally at 390px. The cause was not a wide element but
+`min-width: auto`, which flex and grid children default to: they refuse to shrink below
+their content, so a scrollable table or a `<pre>` pushes the entire page wide and the
+`overflow-x-auto` that was supposed to contain it never engages.
+
+Fixed at the primitive level — `Card`, `TableWrap` and `Field` can all shrink now — rather
+than per page, so new pages inherit the fix. The sweep in `scripts/visual-check.mjs`
+asserts on it directly (`scrollWidth > innerWidth`) at both widths, alongside console
+errors and failed requests, so it cannot regress silently.

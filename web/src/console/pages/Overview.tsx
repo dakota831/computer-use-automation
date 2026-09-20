@@ -93,7 +93,7 @@ export function Overview({ prefs }: { prefs: RefreshPrefs }) {
         />
       </div>
 
-      <div className="mt-5 grid gap-4 lg:grid-cols-[1fr_1.3fr]">
+      <div className="mt-5 grid min-w-0 gap-4 lg:grid-cols-[1fr_1.3fr]">
         <Card
           title="Needs attention"
           aside={

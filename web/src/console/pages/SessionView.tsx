@@ -199,8 +199,8 @@ export function SessionView() {
         }
       />
 
-      <div className="grid gap-4 lg:grid-cols-[2fr_1fr]">
-        <div className="flex flex-col gap-3">
+      <div className="grid min-w-0 gap-4 lg:grid-cols-[2fr_1fr]">
+        <div className="flex min-w-0 flex-col gap-3">
           <div className="flex flex-wrap items-center gap-2">
             <Button
               variant="primary"
@@ -267,7 +267,7 @@ export function SessionView() {
           )}
         </div>
 
-        <div className="flex flex-col gap-4">
+        <div className="flex min-w-0 flex-col gap-4">
           <Card title="Why this stopped">
             <p className="text-sm">{meta?.reason ?? detail?.reason ?? "—"}</p>
             <dl className="mt-3">

@@ -84,8 +84,8 @@ export function RunDetail() {
         right={<StatusBadge status={summary.status} />}
       />
 
-      <div className="grid gap-4 lg:grid-cols-[1fr_2fr]">
-        <div className="flex flex-col gap-4">
+      <div className="grid min-w-0 gap-4 lg:grid-cols-[1fr_2fr]">
+        <div className="flex min-w-0 flex-col gap-4">
           <Card title="Summary">
             <dl>
               <Field label="Run id" mono>
@@ -118,7 +118,7 @@ export function RunDetail() {
 
           {data.screenshots.length > 0 && (
             <Card title={`Screenshots (${data.screenshots.length})`}>
-              <div className="flex flex-col gap-3">
+              <div className="flex min-w-0 flex-col gap-3">
                 {data.screenshots.map((s) => (
                   <figure key={s}>
                     <img
@@ -200,7 +200,7 @@ function EventRow({ e }: { e: RunEvent }) {
         </span>
       </button>
       {open && (
-        <pre className="rule mt-1.5 ml-11 max-h-72 overflow-auto bg-paper-sunk p-2 font-mono text-[0.625rem] leading-relaxed">
+        <pre className="rule mt-1.5 ml-11 max-h-72 min-w-0 max-w-full overflow-auto bg-paper-sunk p-2 font-mono text-[0.625rem] leading-relaxed">
           {JSON.stringify(rest, null, 2)}
         </pre>
       )}

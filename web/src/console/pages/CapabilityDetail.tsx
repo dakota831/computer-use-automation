@@ -62,8 +62,8 @@ export function CapabilityDetail() {
         right={<StatusBadge status={doc.status} />}
       />
 
-      <div className="grid gap-4 lg:grid-cols-[1.4fr_1fr]">
-        <div className="flex flex-col gap-4">
+      <div className="grid min-w-0 gap-4 lg:grid-cols-[1.4fr_1fr]">
+        <div className="flex min-w-0 flex-col gap-4">
           <Card title="Steps">
             <ol className="flex flex-col">
               {doc.steps.map((s, i) => (
@@ -194,7 +194,7 @@ export function CapabilityDetail() {
           </Card>
         </div>
 
-        <div className="flex flex-col gap-4">
+        <div className="flex min-w-0 flex-col gap-4">
           <InvokePanel doc={doc} />
 
           <Card title="Contract">
@@ -413,7 +413,7 @@ function InvokePanel({ doc }: { doc: CapabilityDoc }) {
         )}
 
         {result && (
-          <pre className="rule max-h-64 overflow-auto bg-paper-sunk p-2 font-mono text-[0.6875rem] leading-relaxed">
+          <pre className="rule max-h-64 min-w-0 max-w-full overflow-auto bg-paper-sunk p-2 font-mono text-[0.6875rem] leading-relaxed">
             {JSON.stringify(result, null, 2)}
           </pre>
         )}
@@ -422,7 +422,7 @@ function InvokePanel({ doc }: { doc: CapabilityDoc }) {
           <summary className="label-caps cursor-pointer text-ink-faint hover:text-blue">
             <Terminal className="mr-1 inline size-3.5" /> call it from a shell
           </summary>
-          <pre className="rule mt-1.5 overflow-auto bg-paper-sunk p-2 font-mono text-[0.625rem]">
+          <pre className="rule mt-1.5 min-w-0 max-w-full overflow-auto bg-paper-sunk p-2 font-mono text-[0.625rem]">
             {curl}
           </pre>
         </details>
