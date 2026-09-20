@@ -11,20 +11,40 @@
     "catalog": "tsx src/cli/index.ts catalog",
     "operator": "tsx src/cli/index.ts operator",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "dev": "concurrently -n target,api,web -c cyan,magenta,green \"npm:target\" \"npm:server\" \"npm:web:dev\"",
+    "server": "tsx src/server/index.ts",
+    "web:dev": "vite",
+    "web:build": "vite build",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
   },
   "dependencies": {
+    "clsx": "^2.1.1",
     "dotenv": "^18.0.0",
     "express": "^5.2.1",
+    "lucide-react": "^1.47.0",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "ws": "^8.21.3",
     "zod": "^4.6.5"
   },
   "devDependencies": {
     "@playwright/test": "^1.63.0",
+    "@tailwindcss/vite": "^4.3.3",
     "@types/express": "^5.0.6",
     "@types/node": "^26.6.1",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@types/ws": "^8.18.1",
+    "@vitejs/plugin-react": "^6.1.1",
+    "concurrently": "^10.0.5",
     "playwright": "^1.63.0",
+    "prettier": "^3.9.8",
+    "tailwindcss": "^4.3.3",
     "tsx": "^4.23.13",
     "typescript": "^7.0.2",
+    "vite": "^8.3.0",
     "vitest": "^5.0.1"
   }
 }

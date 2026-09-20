@@ -1,0 +1,20 @@
+@import "tailwindcss";
+
+/* Design tokens live here so the whole console can be restyled from one place
+   once we care what it looks like. Dark by default: operators work in it for
+   long stretches, and it sits next to a screencast of a bright legacy app. */
+@theme {
+  --color-surface: oklch(0.21 0.01 260);
+  --color-surface-raised: oklch(0.26 0.012 260);
+  --color-edge: oklch(0.34 0.015 260);
+  --color-ink: oklch(0.95 0.005 260);
+  --color-ink-dim: oklch(0.72 0.012 260);
+  --color-accent: oklch(0.68 0.15 250);
+  --color-danger: oklch(0.65 0.19 25);
+  --color-ok: oklch(0.72 0.15 155);
+}
+
+body {
+  background: var(--color-surface);
+  color: var(--color-ink);
+}

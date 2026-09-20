@@ -31,7 +31,11 @@ export const Assertion = z.discriminatedUnion("kind", [
     within: TargetDescriptor.optional(),
     match: z.enum(["exact", "normalized", "regex"]).default("normalized"),
   }),
-  z.object({ kind: z.literal("text_absent"), text: z.string(), within: TargetDescriptor.optional() }),
+  z.object({
+    kind: z.literal("text_absent"),
+    text: z.string(),
+    within: TargetDescriptor.optional(),
+  }),
   z.object({ kind: z.literal("element_present"), target: TargetDescriptor }),
   z.object({ kind: z.literal("element_absent"), target: TargetDescriptor }),
   z.object({

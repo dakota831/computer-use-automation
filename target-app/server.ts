@@ -2,7 +2,15 @@ import express from "express";
 import type { Request, Response } from "express";
 import { TENANTS, DEFAULT_TENANT, type Tenant } from "./tenants.js";
 import { MEMBERS, CREDENTIALS, type Member } from "./data.js";
-import { shell, frameDoc, fieldRow, panel, errorBox, warnBox, esc } from "./render.js";
+import {
+  shell,
+  frameDoc,
+  fieldRow,
+  panel,
+  errorBox,
+  warnBox,
+  esc,
+} from "./render.js";
 
 /**
  * Stand-in back-office application: "CoreLink Teller".
@@ -20,7 +28,12 @@ import { shell, frameDoc, fieldRow, panel, errorBox, warnBox, esc } from "./rend
 const PORT = Number(process.env.DEX_TARGET_PORT ?? 8080);
 const SESSION_TTL_MS = Number(process.env.DEX_SESSION_TTL_MS ?? 30 * 60 * 1000);
 
-type Session = { tenant: string; user: string; createdAt: number; ackDone: boolean };
+type Session = {
+  tenant: string;
+  user: string;
+  createdAt: number;
+  ackDone: boolean;
+};
 const sessions = new Map<string, Session>();
 let subAccountSeq = 4400;
 
@@ -103,10 +116,19 @@ app.post("/t/:tenant/login", (req, res) => {
     return res.redirect(`${base(t)}/frame/login?err=1`);
   }
   const sid = `s${Math.random().toString(36).slice(2)}${Date.now().toString(36)}`;
-  sessions.set(sid, { tenant: t.id, user: u, createdAt: Date.now(), ackDone: false });
+  sessions.set(sid, {
+    tenant: t.id,
+    user: u,
+    createdAt: Date.now(),
+    ackDone: false,
+  });
   res.setHeader("Set-Cookie", `sid=${sid}; Path=/; HttpOnly; SameSite=Lax`);
   // Summit interposes an acknowledgement screen; First Community does not.
-  res.redirect(t.postLoginAcknowledgement ? `${base(t)}/frame/ack` : `${base(t)}/frame/search`);
+  res.redirect(
+    t.postLoginAcknowledgement
+      ? `${base(t)}/frame/ack`
+      : `${base(t)}/frame/search`,
+  );
 });
 
 /** Per-tenant interstitial. A recoverable condition the capability must dismiss. */
@@ -140,7 +162,9 @@ app.post("/t/:tenant/ack", (req, res) => {
 app.get("/t/:tenant/frame/search", (req, res) => {
   const t = tenantOf(req);
   if (!sessionOf(req)) return expired(t, res);
-  const notFound = req.query.nf ? errorBox("No member found matching the ID supplied.") : "";
+  const notFound = req.query.nf
+    ? errorBox("No member found matching the ID supplied.")
+    : "";
   const invalid = req.query.inv ? errorBox("Member ID must be 6 digits.") : "";
   res.send(
     frameDoc(
@@ -170,7 +194,8 @@ app.post("/t/:tenant/search", (req, res) => {
 
 // ---------------------------------------------------------------- member detail
 
-const money = (n: number) => `$${n.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")}`;
+const money = (n: number) =>
+  `$${n.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")}`;
 
 function detailRows(t: Tenant, m: Member): string {
   const nameCell = `<tr><td align="right">Name:</td><td>${esc(m.name)}</td></tr>`;
@@ -190,19 +215,47 @@ app.get("/t/:tenant/frame/member", async (req, res) => {
   const id = String(req.query.id ?? "");
   const m = MEMBERS[id];
   if (!m) {
-    return res.send(frameDoc(t, panel("Member Detail", errorBox("No member found matching the ID supplied."))));
+    return res.send(
+      frameDoc(
+        t,
+        panel(
+          "Member Detail",
+          errorBox("No member found matching the ID supplied."),
+        ),
+      ),
+    );
   }
 
   // Exceptional states, keyed off the fixture so they are reproducible.
   if (m.scenario === "permission_denied") {
     return res
       .status(200)
-      .send(frameDoc(t, panel("Member Detail", errorBox("You do not have permission to view this member record. Contact your supervisor."))));
+      .send(
+        frameDoc(
+          t,
+          panel(
+            "Member Detail",
+            errorBox(
+              "You do not have permission to view this member record. Contact your supervisor.",
+            ),
+          ),
+        ),
+      );
   }
   if (m.scenario === "app_error") {
     return res
       .status(500)
-      .send(frameDoc(t, panel("Application Error", errorBox("An unexpected error occurred (ref CLK-500). The record could not be loaded."))));
+      .send(
+        frameDoc(
+          t,
+          panel(
+            "Application Error",
+            errorBox(
+              "An unexpected error occurred (ref CLK-500). The record could not be loaded.",
+            ),
+          ),
+        ),
+      );
   }
   if (m.scenario === "interstitial" && req.query.ack !== "1") {
     return res.send(
@@ -217,7 +270,9 @@ app.get("/t/:tenant/frame/member", async (req, res) => {
     );
   }
   if (m.scenario === "slow") {
-    await new Promise((r) => setTimeout(r, Number(process.env.DEX_SLOW_MS ?? 6000)));
+    await new Promise((r) =>
+      setTimeout(r, Number(process.env.DEX_SLOW_MS ?? 6000)),
+    );
   }
 
   res.send(
@@ -239,8 +294,13 @@ app.get("/t/:tenant/frame/subaccount", (req, res) => {
   if (!sessionOf(req)) return expired(t, res);
   const id = String(req.query.id ?? "");
   const m = MEMBERS[id];
-  if (!m) return res.send(frameDoc(t, panel(t.labels.openSubAccount, errorBox("No member found."))));
-  const err = req.query.err ? errorBox("Initial deposit must be at least $25.00.") : "";
+  if (!m)
+    return res.send(
+      frameDoc(t, panel(t.labels.openSubAccount, errorBox("No member found."))),
+    );
+  const err = req.query.err
+    ? errorBox("Initial deposit must be at least $25.00.")
+    : "";
   res.send(
     frameDoc(
       t,
@@ -264,13 +324,21 @@ app.post("/t/:tenant/subaccount", (req, res) => {
   const t = tenantOf(req);
   if (!sessionOf(req)) return expired(t, res);
   const id = String(req.body[`${t.controlPrefix}hidMemberId`] ?? "");
-  const nickname = String(req.body[`${t.controlPrefix}txtNickname`] ?? "").trim();
-  const deposit = Number(String(req.body[`${t.controlPrefix}txtDeposit`] ?? "").replace(/[$,]/g, ""));
+  const nickname = String(
+    req.body[`${t.controlPrefix}txtNickname`] ?? "",
+  ).trim();
+  const deposit = Number(
+    String(req.body[`${t.controlPrefix}txtDeposit`] ?? "").replace(/[$,]/g, ""),
+  );
   if (!Number.isFinite(deposit) || deposit < 25) {
-    return res.redirect(`${base(t)}/frame/subaccount?id=${encodeURIComponent(id)}&err=1`);
+    return res.redirect(
+      `${base(t)}/frame/subaccount?id=${encodeURIComponent(id)}&err=1`,
+    );
   }
   const ref = `SA-${++subAccountSeq}`;
-  res.redirect(`${base(t)}/frame/confirm?ref=${ref}&id=${encodeURIComponent(id)}&nn=${encodeURIComponent(nickname)}`);
+  res.redirect(
+    `${base(t)}/frame/confirm?ref=${ref}&id=${encodeURIComponent(id)}&nn=${encodeURIComponent(nickname)}`,
+  );
 });
 
 app.get("/t/:tenant/frame/confirm", (req, res) => {
@@ -295,7 +363,10 @@ app.get("/t/:tenant/frame/confirm", (req, res) => {
 
 app.get("/", (_req, res) => {
   const links = Object.values(TENANTS)
-    .map((t) => `<li><a href="/t/${t.id}">${esc(t.institution)}</a> (CoreLink ${esc(t.productVersion)})</li>`)
+    .map(
+      (t) =>
+        `<li><a href="/t/${t.id}">${esc(t.institution)}</a> (CoreLink ${esc(t.productVersion)})</li>`,
+    )
     .join("");
   res.send(`<!doctype html><title>CoreLink Teller (synthetic)</title>
     <body style="font-family:Verdana;font-size:13px;margin:3rem auto;max-width:40rem">
@@ -305,5 +376,7 @@ app.get("/", (_req, res) => {
 });
 
 app.listen(PORT, "127.0.0.1", () => {
-  console.log(`[target-app] http://127.0.0.1:${PORT}  tenants: ${Object.keys(TENANTS).join(", ")}`);
+  console.log(
+    `[target-app] http://127.0.0.1:${PORT}  tenants: ${Object.keys(TENANTS).join(", ")}`,
+  );
 });

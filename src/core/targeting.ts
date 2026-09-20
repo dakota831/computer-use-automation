@@ -32,8 +32,15 @@ export type FrameStep = z.infer<typeof FrameStep>;
 
 /** A container to scope a search to, so "Search" means the button in *this* panel. */
 export const ContainerRef = z.object({
-  role: z.string().describe("ARIA/AX role of the containing region, e.g. form, table, dialog"),
-  name: z.string().optional().describe("Accessible name of that container when it has one"),
+  role: z
+    .string()
+    .describe(
+      "ARIA/AX role of the containing region, e.g. form, table, dialog",
+    ),
+  name: z
+    .string()
+    .optional()
+    .describe("Accessible name of that container when it has one"),
 });
 export type ContainerRef = z.infer<typeof ContainerRef>;
 
@@ -65,7 +72,9 @@ export const LocatorStrategy = z.discriminatedUnion("kind", [
     labelText: z.string(),
     labelMatch: NameMatch.default("normalized"),
     relation: z.enum(["right_of", "below", "wraps", "after"]),
-    controlRole: z.string().describe("Role of the control we expect to find, e.g. textbox"),
+    controlRole: z
+      .string()
+      .describe("Role of the control we expect to find, e.g. textbox"),
   }),
   z.object({
     kind: z.literal("nth_of_role"),
@@ -98,7 +107,12 @@ export const TargetDescriptor = z.object({
    * about a UI and using them silently converts a layout shift into a misclick.
    */
   boundingBoxHint: z
-    .object({ x: z.number(), y: z.number(), width: z.number(), height: z.number() })
+    .object({
+      x: z.number(),
+      y: z.number(),
+      width: z.number(),
+      height: z.number(),
+    })
     .optional(),
   /**
    * What to do when a strategy matches more than one node.

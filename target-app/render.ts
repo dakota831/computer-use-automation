@@ -19,7 +19,11 @@ import type { Tenant } from "./tenants.js";
  */
 
 const esc = (s: string) =>
-  s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
 
 /** Outer shell: a nav bar and an iframe. The agent must cross into the frame. */
 export function shell(t: Tenant, innerPath: string, title: string): string {
@@ -59,7 +63,12 @@ export function frameDoc(t: Tenant, bodyHtml: string): string {
 }
 
 /** A labelled field rendered the legacy way: label in one cell, unlabelled input in the next. */
-export function fieldRow(label: string, controlName: string, type = "text", value = ""): string {
+export function fieldRow(
+  label: string,
+  controlName: string,
+  type = "text",
+  value = "",
+): string {
   return `<tr><td align="right">${esc(label)}:</td>
     <td><input type="${type}" name="${esc(controlName)}" value="${esc(value)}" size="24"></td></tr>`;
 }

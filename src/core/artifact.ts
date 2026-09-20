@@ -10,10 +10,10 @@ export const SCHEMA_VERSION = "1.0.0";
  * a member ID looks like any other string.
  */
 export const Sensitivity = z.enum([
-  "public",    // safe to log verbatim
-  "internal",  // logged, not published in evidence
-  "pii",       // redacted to a type tag + length, never stored raw
-  "secret",    // never enters a log, an artifact, or the model context at all
+  "public", // safe to log verbatim
+  "internal", // logged, not published in evidence
+  "pii", // redacted to a type tag + length, never stored raw
+  "secret", // never enters a log, an artifact, or the model context at all
 ]);
 export type Sensitivity = z.infer<typeof Sensitivity>;
 
@@ -60,7 +60,11 @@ export const OutputSpec = z.object({
       z.discriminatedUnion("op", [
         z.object({ op: z.literal("trim") }),
         z.object({ op: z.literal("strip"), chars: z.string() }),
-        z.object({ op: z.literal("regex_extract"), pattern: z.string(), group: z.number().int().default(1) }),
+        z.object({
+          op: z.literal("regex_extract"),
+          pattern: z.string(),
+          group: z.number().int().default(1),
+        }),
         z.object({ op: z.literal("to_number") }),
       ]),
     )
@@ -79,10 +83,22 @@ export const Action = z.discriminatedUnion("type", [
     value: z.string(),
     clearFirst: z.boolean().default(true),
   }),
-  z.object({ type: z.literal("select"), target: TargetDescriptor, value: z.string() }),
+  z.object({
+    type: z.literal("select"),
+    target: TargetDescriptor,
+    value: z.string(),
+  }),
   z.object({ type: z.literal("press"), key: z.string() }),
-  z.object({ type: z.literal("read"), target: TargetDescriptor, into: z.string() }),
-  z.object({ type: z.literal("wait_for"), assertion: Assertion, timeoutMs: z.number().int().positive().default(10_000) }),
+  z.object({
+    type: z.literal("read"),
+    target: TargetDescriptor,
+    into: z.string(),
+  }),
+  z.object({
+    type: z.literal("wait_for"),
+    assertion: Assertion,
+    timeoutMs: z.number().int().positive().default(10_000),
+  }),
 ]);
 export type Action = z.infer<typeof Action>;
 
@@ -96,11 +112,23 @@ export type Action = z.infer<typeof Action>;
  *   escalate         - we cannot proceed safely, but a human could.
  *   fail             - stop and surface a debuggable error.
  */
-export const OutcomeDisposition = z.enum(["business_outcome", "recover", "escalate", "fail"]);
+export const OutcomeDisposition = z.enum([
+  "business_outcome",
+  "recover",
+  "escalate",
+  "fail",
+]);
 
 export const RecoveryAction = z.discriminatedUnion("do", [
-  z.object({ do: z.literal("dismiss"), target: TargetDescriptor, describedAs: z.string() }),
-  z.object({ do: z.literal("wait_retry"), delayMs: z.number().int().positive().default(1000) }),
+  z.object({
+    do: z.literal("dismiss"),
+    target: TargetDescriptor,
+    describedAs: z.string(),
+  }),
+  z.object({
+    do: z.literal("wait_retry"),
+    delayMs: z.number().int().positive().default(1000),
+  }),
   z.object({ do: z.literal("reauthenticate") }),
 ]);
 
@@ -140,10 +168,17 @@ export type Step = z.infer<typeof Step>;
  */
 export const Capability = z.object({
   schemaVersion: z.literal(SCHEMA_VERSION),
-  id: z.string().regex(/^[a-z][a-z0-9_.]*$/, "stable, human-readable id e.g. cu.member.read_savings_balance"),
+  id: z
+    .string()
+    .regex(
+      /^[a-z][a-z0-9_.]*$/,
+      "stable, human-readable id e.g. cu.member.read_savings_balance",
+    ),
   version: z.string().regex(/^\d+\.\d+\.\d+$/),
   title: z.string(),
-  description: z.string().describe("What a calling agent needs to know to decide to invoke this."),
+  description: z
+    .string()
+    .describe("What a calling agent needs to know to decide to invoke this."),
 
   /**
    * Approval gate. A draft capability may only be replayed attended.
@@ -180,7 +215,17 @@ export const Capability = z.object({
 
   policy: z.object({
     allowedOrigins: z.array(z.string()).min(1),
-    allowedActions: z.array(z.string()).default(["navigate", "click", "type", "select", "press", "read", "wait_for"]),
+    allowedActions: z
+      .array(z.string())
+      .default([
+        "navigate",
+        "click",
+        "type",
+        "select",
+        "press",
+        "read",
+        "wait_for",
+      ]),
     /** Steps at or above this risk class require a human decision even on an approved capability. */
     confirmAtOrAbove: RiskClass.default("irreversible"),
   }),
@@ -201,4 +246,5 @@ export const Capability = z.object({
 });
 export type Capability = z.infer<typeof Capability>;
 
-export const parseCapability = (raw: unknown): Capability => Capability.parse(raw);
+export const parseCapability = (raw: unknown): Capability =>
+  Capability.parse(raw);

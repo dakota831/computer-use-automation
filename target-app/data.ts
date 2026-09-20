@@ -19,16 +19,69 @@ export type Member = {
 };
 
 export const MEMBERS: Record<string, Member> = {
-  "100001": { memberId: "100001", name: "Alina Marsh",    status: "active",     ssnLast4: "4417", savingsBalance: 8214.55,  checkingBalance: 1320.08 },
-  "100002": { memberId: "100002", name: "Cedric Nwosu",   status: "active",     ssnLast4: "9082", savingsBalance: 142.10,   checkingBalance: 55.00 },
-  "100003": { memberId: "100003", name: "Priya Raghavan", status: "active",     ssnLast4: "3351", savingsBalance: 61230.00, checkingBalance: 9401.77 },
+  "100001": {
+    memberId: "100001",
+    name: "Alina Marsh",
+    status: "active",
+    ssnLast4: "4417",
+    savingsBalance: 8214.55,
+    checkingBalance: 1320.08,
+  },
+  "100002": {
+    memberId: "100002",
+    name: "Cedric Nwosu",
+    status: "active",
+    ssnLast4: "9082",
+    savingsBalance: 142.1,
+    checkingBalance: 55.0,
+  },
+  "100003": {
+    memberId: "100003",
+    name: "Priya Raghavan",
+    status: "active",
+    ssnLast4: "3351",
+    savingsBalance: 61230.0,
+    checkingBalance: 9401.77,
+  },
   // Exceptional-state fixtures. Each exists to exercise one branch of the
   // error taxonomy, so the replay evidence can show real detection rather than
   // a simulated failure.
-  "200001": { memberId: "200001", name: "Restricted Account", status: "restricted", ssnLast4: "0000", savingsBalance: 0, checkingBalance: 0, scenario: "permission_denied" },
-  "200002": { memberId: "200002", name: "Dana Whitfield",     status: "active",     ssnLast4: "7719", savingsBalance: 305.25, checkingBalance: 12.00, scenario: "interstitial" },
-  "200003": { memberId: "200003", name: "Slow Record",        status: "active",     ssnLast4: "5560", savingsBalance: 990.00, checkingBalance: 4.25,  scenario: "slow" },
-  "200004": { memberId: "200004", name: "Broken Record",      status: "active",     ssnLast4: "1108", savingsBalance: 0,      checkingBalance: 0,     scenario: "app_error" },
+  "200001": {
+    memberId: "200001",
+    name: "Restricted Account",
+    status: "restricted",
+    ssnLast4: "0000",
+    savingsBalance: 0,
+    checkingBalance: 0,
+    scenario: "permission_denied",
+  },
+  "200002": {
+    memberId: "200002",
+    name: "Dana Whitfield",
+    status: "active",
+    ssnLast4: "7719",
+    savingsBalance: 305.25,
+    checkingBalance: 12.0,
+    scenario: "interstitial",
+  },
+  "200003": {
+    memberId: "200003",
+    name: "Slow Record",
+    status: "active",
+    ssnLast4: "5560",
+    savingsBalance: 990.0,
+    checkingBalance: 4.25,
+    scenario: "slow",
+  },
+  "200004": {
+    memberId: "200004",
+    name: "Broken Record",
+    status: "active",
+    ssnLast4: "1108",
+    savingsBalance: 0,
+    checkingBalance: 0,
+    scenario: "app_error",
+  },
 };
 
 /** Not in MEMBERS on purpose: the "record not found" business outcome. */
