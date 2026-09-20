@@ -21,7 +21,8 @@
     "visual": "node scripts/visual-check.mjs",
     "interaction": "node scripts/interaction-check.mjs",
     "doc-check": "node scripts/doc-check.mjs",
-    "check": "npm run typecheck && npm test && npm run doc-check"
+    "check": "npm run typecheck && npm test && npm run doc-check",
+    "deploy:web": "bash scripts/deploy-web.sh"
   },
   "dependencies": {
     "clsx": "^2.1.1",

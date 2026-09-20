@@ -1,6 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Sparkles, AlertTriangle, Building2, ChevronDown } from "lucide-react";
+import {
+  Sparkles,
+  AlertTriangle,
+  Building2,
+  ChevronDown,
+  Loader2,
+  Square,
+  Info,
+} from "lucide-react";
 import {
   authoring,
   type DiscoveryInfo,
@@ -44,12 +52,31 @@ export function deriveCapabilityId(title: string): string {
   return slug ? `cu.${slug}` : "";
 }
 
+/** mm:ss, because a run is minutes and a bare second count reads as noise. */
+function elapsed(ms: number): string {
+  const s = Math.max(0, Math.round(ms / 1000));
+  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+}
+
+/**
+ * Words that mean "do this N times", where N is only known at run time.
+ *
+ * A capability is a fixed list of steps, so a goal that needs a loop cannot be
+ * recorded as one - the agent will either do it once or wander until the budget
+ * runs out. Catching that in the form costs a sentence; catching it after the
+ * run costs five minutes and leaves the operator with nothing.
+ */
+const REPETITION_HINTS =
+  /\b(all|each|every|both|any\s+other|remaining|one\s+by\s+one)\b/i;
+
 export function NewCapability() {
   const nav = useNavigate();
   const toast = useToast();
   const [info, setInfo] = useState<DiscoveryInfo | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [job, setJob] = useState<DiscoveryJob | null>(null);
+  /** Ticks once a second so elapsed time moves even between polls. */
+  const [now, setNow] = useState(() => Date.now());
   const [busy, setBusy] = useState(false);
   const [advanced, setAdvanced] = useState(false);
 
@@ -77,6 +104,12 @@ export function NewCapability() {
   }, []);
 
   useEffect(() => {
+    if (job?.status !== "running") return;
+    const t = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(t);
+  }, [job?.status]);
+
+  useEffect(() => {
     if (!job || job.status !== "running") return;
     const t = setInterval(() => {
       authoring
@@ -89,7 +122,7 @@ export function NewCapability() {
             toast(`Could not finish: ${j.error?.slice(0, 80)}`, "danger");
         })
         .catch(() => {});
-    }, 2500);
+    }, 1500);
     return () => clearInterval(t);
   }, [job, toast]);
 
@@ -296,6 +329,17 @@ export function NewCapability() {
             </div>
           </Card>
 
+          {REPETITION_HINTS.test(goal) && (
+            <div className="rule border-warn bg-warn-pale p-3 text-xs text-ink">
+              <Info className="mr-1 inline size-3.5" />
+              This reads like it should be repeated for several records
+              (&ldquo;all&rdquo;, &ldquo;each&rdquo;, &ldquo;every&rdquo;). A
+              capability is a fixed list of steps, so it will be learned once,
+              for one record. Describe the task for a single record and let the
+              caller run it once per record.
+            </div>
+          )}
+
           {err && <ErrorState error={err} />}
 
           <div>
@@ -339,10 +383,34 @@ export function NewCapability() {
                         ? "success"
                         : job.status === "failed"
                           ? "failed"
-                          : "pending"
+                          : "running"
                     }
                   />
                 </Row>
+                {job.status === "running" && (
+                  <>
+                    <Row k="Working on">
+                      <Mono>
+                        step {job.step ?? 1}
+                        {job.maxSteps ? ` of ${job.maxSteps}` : ""}
+                      </Mono>
+                    </Row>
+                    <Row k="Elapsed">
+                      <Mono>
+                        {elapsed(now - Date.parse(job.startedAt))}
+                        {job.deadline
+                          ? ` / ${elapsed(job.deadline - Date.parse(job.startedAt))} budget`
+                          : ""}
+                      </Mono>
+                    </Row>
+                    {job.lastAction && (
+                      <div className="rule mt-1 border-blue bg-blue-pale p-2 text-xs break-words text-ink">
+                        <Loader2 className="mr-1 inline size-3.5 animate-spin" />
+                        {job.lastAction}
+                      </div>
+                    )}
+                  </>
+                )}
                 {job.steps !== undefined && (
                   <Row k="Steps learned">
                     <Mono>{job.steps}</Mono>
@@ -368,6 +436,23 @@ export function NewCapability() {
                     <AlertTriangle className="mr-1 inline size-3.5" />
                     {job.error}
                   </div>
+                )}
+                {job.status === "running" && (
+                  <Button
+                    variant="ghost"
+                    className="mt-2"
+                    onClick={async () => {
+                      try {
+                        await authoring.cancel(job.id);
+                        toast("Stopping the run", "info");
+                      } catch (e) {
+                        toast(String(e), "danger");
+                      }
+                    }}
+                  >
+                    <Square className="size-4" />
+                    Stop it
+                  </Button>
                 )}
                 {job.status === "succeeded" && job.capabilityId && (
                   <Button

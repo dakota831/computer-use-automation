@@ -9,7 +9,10 @@ import { readFileSync, writeFileSync } from "node:fs";
 const P = "DECISIONS.md";
 const text = readFileSync(P, "utf8");
 
-const entries = [...text.matchAll(/^## (D\d+) — (.+)$/gm)].map((m) => ({ id: m[1], title: m[2] }));
+const entries = [...text.matchAll(/^## (D\d+) — (.+)$/gm)].map((m) => ({
+  id: m[1],
+  title: m[2],
+}));
 if (!entries.length) throw new Error("no decision headings found");
 
 const GROUPS = [
@@ -20,7 +23,10 @@ const GROUPS = [
   ["Discovery and the review loop", ["D15", "D16", "D17", "D26", "D28", "D34"]],
   ["Escalation and control transfer", ["D18", "D19", "D24"]],
   ["Multi-tenant", ["D25"]],
-  ["Interface and operations", ["D20", "D22", "D23", "D29", "D30", "D33", "D35", "D36"]],
+  [
+    "Interface and operations",
+    ["D20", "D22", "D23", "D29", "D30", "D33", "D35", "D36"],
+  ],
   ["Measurements and mistakes worth keeping", ["D7", "D13", "D27"]],
 ];
 
@@ -38,12 +44,23 @@ for (const [name, ids] of GROUPS) {
   const rows = ids.filter((id) => byId.has(id));
   if (!rows.length) continue;
   lines.push(`**${name}**  `);
-  lines.push(rows.map((id) => `[${id}](#${slug(id, byId.get(id).title)}) ${byId.get(id).title.toLowerCase()}`).join("  ·  "));
+  lines.push(
+    rows
+      .map(
+        (id) =>
+          `[${id}](#${slug(id, byId.get(id).title)}) ${byId.get(id).title.toLowerCase()}`,
+      )
+      .join("  ·  "),
+  );
   lines.push("");
 }
 if (ungrouped.length) {
   lines.push("**Also**  ");
-  lines.push(ungrouped.map((e) => `[${e.id}](#${slug(e.id, e.title)}) ${e.title.toLowerCase()}`).join("  ·  "));
+  lines.push(
+    ungrouped
+      .map((e) => `[${e.id}](#${slug(e.id, e.title)}) ${e.title.toLowerCase()}`)
+      .join("  ·  "),
+  );
   lines.push("");
 }
 

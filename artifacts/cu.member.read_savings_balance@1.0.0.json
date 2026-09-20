@@ -18,15 +18,9 @@
     "summit": {
       "entryPoint": "http://127.0.0.1:8080/t/summit",
       "aliases": {
-        "the Member ID field": [
-          "Member Number"
-        ],
-        "the Search button": [
-          "Find"
-        ],
-        "the savings balance value cell": [
-          "Regular Savings"
-        ]
+        "the Member ID field": ["Member Number"],
+        "the Search button": ["Find"],
+        "the savings balance value cell": ["Regular Savings"]
       },
       "note": "Summit Savings FCU - CoreLink 8.4.0. Interposes an acceptable-use screen after sign-in, handled by the ACKNOWLEDGEMENT_REQUIRED recovery rule in the base capability."
     }
@@ -349,9 +343,7 @@
                 "role": "button",
                 "name": "Search",
                 "nameMatch": "alias",
-                "aliases": [
-                  "Find"
-                ]
+                "aliases": ["Find"]
               },
               "confidence": 0.95,
               "rationale": "button carries a real accessible name; aliases cover tenant wording (Search / Find)"

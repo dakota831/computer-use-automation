@@ -91,7 +91,7 @@ export function StatusBadge({ status }: { status: string }) {
           ? "danger"
           : status === "escalated" || status === "pending"
             ? "info"
-            : status === "operator_controlling"
+            : status === "operator_controlling" || status === "running"
               ? "live"
               : "neutral";
   return <Badge tone={tone}>{status.replace(/_/g, " ")}</Badge>;

@@ -3,11 +3,11 @@
 The reference deployment is a single small VM. Everything binds to loopback and nginx
 is the only thing listening publicly.
 
-| Name | Serves | Auth |
-|---|---|---|
-| `teller.dexdash.cloud` | the synthetic target app (`127.0.0.1:8080`) | open |
+| Name                    | Serves                                                | Auth       |
+| ----------------------- | ----------------------------------------------------- | ---------- |
+| `teller.dexdash.cloud`  | the synthetic target app (`127.0.0.1:8080`)           | open       |
 | `console.dexdash.cloud` | operator console (static build + `/api`, `/ws` proxy) | HTTP basic |
-| `api.dexdash.cloud` | capability catalog / replay API (`127.0.0.1:4000`) | HTTP basic |
+| `api.dexdash.cloud`     | capability catalog / replay API (`127.0.0.1:4000`)    | HTTP basic |
 
 The teller app is open because every byte of its data is fabricated and it is meant to
 be clicked around. The console and API are not: the console can take control of a live

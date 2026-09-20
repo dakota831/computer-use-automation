@@ -65,6 +65,26 @@ export type DiscoverOptions = {
   evidenceDir?: string;
   perMinute?: number;
   minSpacingMs?: number;
+  /**
+   * Called as the run advances, so a caller can show what it is doing.
+   *
+   * Discovery takes minutes and an operator watching a spinner has no way to
+   * tell "thinking" from "wedged". Reporting progress is not decoration: it is
+   * what makes the wall-clock budget legible while it is still running.
+   */
+  onProgress?: (p: DiscoveryProgress) => void;
+  /** Lets an operator stop a run that is going nowhere. */
+  signal?: AbortSignal;
+};
+
+export type DiscoveryProgress = {
+  runId: string;
+  step: number;
+  maxSteps: number;
+  /** Plain-language description of the last thing it did. */
+  lastAction?: string;
+  startedAt: number;
+  deadline: number;
 };
 
 export type DiscoverResult = {
@@ -106,6 +126,18 @@ export async function discover(opts: DiscoverOptions): Promise<DiscoverResult> {
     Number(process.env.DEX_DISCOVERY_TIMEOUT_MS ?? 5 * 60_000);
   const deadline = started + timeoutMs;
 
+  /**
+   * The budget as a signal, not just a comparison.
+   *
+   * Checking `Date.now() > deadline` between steps bounds nothing while a
+   * request is in flight - a single slow completion sails straight past it.
+   * Handing the client something it can abort is what turns the budget from a
+   * report into a limit.
+   */
+  const budget = new AbortController();
+  const budgetTimer = setTimeout(() => budget.abort(), timeoutMs);
+  opts.signal?.addEventListener("abort", () => budget.abort(), { once: true });
+
   // Register every secret before anything can be written anywhere.
   for (const v of Object.values(opts.secrets)) redactor.registerSecret(v);
   redactor.registerSecret(opts.apiKey);
@@ -133,6 +165,12 @@ export async function discover(opts: DiscoverOptions): Promise<DiscoverResult> {
     parameters: Object.keys(opts.parameters),
     secretKeys: Object.keys(opts.secrets),
   });
+
+  /** Consecutive turns where the model produced no tool call. */
+  let proseOnly = 0;
+  const MAX_PROSE_ONLY_REPLIES = 3;
+  /** Last action in words, for the progress callback. */
+  let lastAction: string | undefined;
 
   const surface = await WebSurface.launch({
     headless: opts.headless ?? true,
@@ -203,6 +241,14 @@ export async function discover(opts: DiscoverOptions): Promise<DiscoverResult> {
     ];
 
     for (stepNo = 1; stepNo <= maxSteps; stepNo++) {
+      opts.onProgress?.({
+        runId,
+        step: stepNo,
+        maxSteps,
+        lastAction,
+        startedAt: started,
+        deadline,
+      });
       if (Date.now() > deadline) {
         log.screenshot(await surface.screenshot(), "discovery-timeout");
         throw new DiscoveryError(
@@ -214,8 +260,23 @@ export async function discover(opts: DiscoverOptions): Promise<DiscoverResult> {
         messages,
         tools: TOOLS,
         toolChoice: "auto",
+        deadline,
+        signal: budget.signal,
       });
       modelCalls++;
+      // The call may have consumed the rest of the budget. Stop here rather
+      // than acting on advice we no longer have time to follow through.
+      if (Date.now() > deadline) {
+        log.screenshot(await surface.screenshot(), "discovery-timeout");
+        throw new DiscoveryError(
+          `agent exceeded its ${Math.round(timeoutMs / 1000)}s budget after ${stepNo} step(s)`,
+          "timeout",
+        );
+      }
+      if (opts.signal?.aborted) {
+        log.screenshot(await surface.screenshot(), "discovery-cancelled");
+        throw new DiscoveryError("run cancelled by the operator", "cancelled");
+      }
       log.event("model_response", {
         step: stepNo,
         latencyMs: res.latencyMs,
@@ -226,13 +287,26 @@ export async function discover(opts: DiscoverOptions): Promise<DiscoverResult> {
 
       const call = res.toolCalls[0];
       if (!call) {
+        // A model that keeps answering in prose is not deciding, it is
+        // narrating. Observed five such turns in one run, each costing up to
+        // 108s of a 300s budget, so this is bounded rather than retried
+        // forever - and the operator is told which it was.
+        if (++proseOnly >= MAX_PROSE_ONLY_REPLIES) {
+          log.screenshot(await surface.screenshot(), "discovery-no-tool-call");
+          throw new DiscoveryError(
+            `model answered in prose ${proseOnly} times without choosing an action; last reply: ${(res.content ?? "").slice(0, 200)}`,
+            "dead_end",
+          );
+        }
         messages.push({ role: "assistant", content: res.content ?? "" });
         messages.push({
           role: "user",
-          content: "You must call exactly one tool. Do not answer in prose.",
+          content:
+            'You must call exactly one tool. Do not answer in prose. If the screen has no control that would advance the goal, call "blocked" and say what is missing.',
         });
         continue;
       }
+      proseOnly = 0;
       messages.push({ role: "assistant", tool_calls: [call] });
 
       const name = normalizeToolName(call.function.name) as ToolName;
@@ -264,6 +338,14 @@ export async function discover(opts: DiscoverOptions): Promise<DiscoverResult> {
         });
         continue;
       }
+
+      // The model's own "why" is the best description of this step that exists,
+      // and it is written for a human already. Surface it rather than inventing
+      // a second, worse summary from the tool name.
+      lastAction =
+        typeof args?.why === "string" && args.why.trim()
+          ? args.why.trim()
+          : name;
 
       if (name === "blocked") {
         log.event("escalation_raised", {
@@ -568,6 +650,7 @@ export async function discover(opts: DiscoverOptions): Promise<DiscoverResult> {
       evidenceDir: log.dir,
     };
   } finally {
+    clearTimeout(budgetTimer);
     await surface.close();
   }
 }

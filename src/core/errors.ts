@@ -179,7 +179,12 @@ export class DiscoveryError extends Error {
   constructor(
     message: string,
     readonly reason:
-      "max_steps" | "dead_end" | "policy_violation" | "model_error" | "timeout",
+      | "max_steps"
+      | "dead_end"
+      | "policy_violation"
+      | "model_error"
+      | "timeout"
+      | "cancelled",
   ) {
     super(message);
     this.name = "DiscoveryError";

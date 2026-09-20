@@ -30,7 +30,7 @@ target-app/    synthetic legacy surface, two tenants
 or CDP. Perception is the accessibility tree (`Accessibility.getFullAXTree`), not the DOM,
 because role/name/value is the one vocabulary that also exists on Windows UI Automation
 and macOS AX. Building on CSS would have made the desktop story in §4 fiction. Playwright
-1.63 *removed* `page.accessibility`, which forced an explicit perception layer rather than
+1.63 _removed_ `page.accessibility`, which forced an explicit perception layer rather than
 a borrowed helper — better anyway.
 
 TypeScript because the contract is the centrepiece: Zod gives one definition serving
@@ -83,7 +83,7 @@ artifact unreviewable.
 
 The schema was validated by hand-authoring a capability against it before the agent
 existed. Two things surfaced that way: ranked strategies double as the cross-tenant alias
-mechanism, and `relation` on a label-proximity strategy must be *enforced* — on a
+mechanism, and `relation` on a label-proximity strategy must be _enforced_ — on a
 two-column layout the cell right of "Name:" and the cell below it report identical
 adjacent text.
 
@@ -112,19 +112,19 @@ the page is either where we expected or somewhere we explicitly know about, whic
 first. Checking outcomes once, immediately, samples the page mid-navigation — which is how
 a clean `PERMISSION_DENIED` was originally reported as an extraction failure three steps
 later (D12). Recovery is bounded per rule, with an absolute eight-attempt ceiling per step,
-and resumes at the *checkpoint* rather than re-running the action.
+and resumes at the _checkpoint_ rather than re-running the action.
 
 Measured across the seeded states:
 
-| input | condition | result |
-|---|---|---|
-| `100001` | normal record | `SUCCESS` `{savingsBalance: 8214.55, …}` |
-| `200002` | unexpected interstitial | `SUCCESS` — dismissed and continued |
-| `200003` | slow load (~6s) | `SUCCESS` — waited it out |
-| `999999` | no such member | `OUTCOME MEMBER_NOT_FOUND` |
-| `200001` | permission denied | `OUTCOME PERMISSION_DENIED` |
-| `12345` | malformed input | `FAILED INPUT_INVALID` in 1ms, before a browser launches |
-| `200004` | application error | `FAILED APP_ERROR @s5_search` |
+| input    | condition               | result                                                   |
+| -------- | ----------------------- | -------------------------------------------------------- |
+| `100001` | normal record           | `SUCCESS` `{savingsBalance: 8214.55, …}`                 |
+| `200002` | unexpected interstitial | `SUCCESS` — dismissed and continued                      |
+| `200003` | slow load (~6s)         | `SUCCESS` — waited it out                                |
+| `999999` | no such member          | `OUTCOME MEMBER_NOT_FOUND`                               |
+| `200001` | permission denied       | `OUTCOME PERMISSION_DENIED`                              |
+| `12345`  | malformed input         | `FAILED INPUT_INVALID` in 1ms, before a browser launches |
+| `200004` | application error       | `FAILED APP_ERROR @s5_search`                            |
 
 **On UI drift**, the brief is right that these apps are stable, so ranked fallbacks plus
 loud logging when a low-confidence strategy is reached is proportionate — drift shows up as
@@ -151,7 +151,7 @@ screencast degrades honestly instead of pretending.
 Legacy web is the demonstrated case, not a hypothetical: iframe shell, table layout,
 `ctl00$MainContent$…` names, no test IDs. Measured on it, **the login fields have no
 accessible name at all** — a system built only on role+name could not sign in. That is why
-label-proximity is load-bearing, and why the adapter consults the DOM *only* to answer "what
+label-proximity is load-bearing, and why the adapter consults the DOM _only_ to answer "what
 is this control called?" when the platform will not say.
 
 **Multi-tenant.** A capability binds to `appProfile.vendorApp`, not a tenant. Most variation
@@ -159,7 +159,7 @@ is absorbed by ranked strategies — "Member ID" first, "Member Number" second r
 both installs. What is left lives in `tenantOverrides`, which carries only what a base
 recording cannot know: where this institution's install is, and any label it has renamed.
 Deliberately narrow — an override cannot change steps, outcomes or policy. A tenant needing
-different *behaviour* is a fork worth reviewing.
+different _behaviour_ is a fork worth reviewing.
 
 Demonstrated, not argued: `cu.member.read_savings_balance`, recorded against First Community,
 replayed against Summit — different host, "Member Number", "Find", "Regular Savings",
@@ -211,7 +211,7 @@ every transfer so that substitution is local.
 
 ## 6. Safety
 
-**Allowlist, enforced twice.** Checked before *every* action — during discovery the model
+**Allowlist, enforced twice.** Checked before _every_ action — during discovery the model
 picks each action freshly; during replay a page can redirect between steps — and again at the
 network layer, so a page-initiated redirect cannot reach an off-list origin. It is a
 literal-match language, not regex, because a reviewer must read it at a glance. Tests cover
@@ -220,7 +220,7 @@ the two ways naive versions break: `/t/firstcu-evil` must not match `/t/firstcu/
 
 **Risk is classified at record time**, not inferred at replay. With `draft → approved`, the
 risk surface is fixed and reviewable before anything runs unattended — replay executes only
-recorded, approved steps, so no *new* risky action can appear. Stronger than a runtime
+recorded, approved steps, so no _new_ risky action can appear. Stronger than a runtime
 heuristic, because it does not depend on classifying a novel action under time pressure.
 Discovery gates with the same shared heuristic; steps at or above `confirmAtOrAbove` require
 a human every time regardless of approval.
@@ -254,7 +254,7 @@ application.
   discovered capability is always `draft` with an empty outcome table. Visible in the
   evidence: the agent's own artifact replays cleanly for two members but returns
   `CHECKPOINT_FAILED` on `999999`, where the reviewed version returns `MEMBER_NOT_FOUND`.
-  That gap *is* the review work — and the console now closes it by hand (below).
+  That gap _is_ the review work — and the console now closes it by hand (below).
 - **Handoff → amendment.** Human actions during an intervention are recorded in the same
   shape as automation actions, so proposing them as a patch is the obvious next step. The
   data is captured; that flow is not built.
@@ -264,7 +264,7 @@ application.
 
 **On the amount of UI.** The console is larger than a take-home strictly needs. It exists
 because §3.6 requires a human to take control of a live session, and a stub cannot
-demonstrate that honestly — the screencast, the lease and the server-side input gate *are*
+demonstrate that honestly — the screencast, the lease and the server-side input gate _are_
 the requirement and need a surface. The load-bearing engineering is still the schema, the
 replay engine and the control-transfer model; the UI is how those are made inspectable.
 
@@ -272,7 +272,7 @@ replay engine and the control-transfer model; the UI is how those are made inspe
 
 1. **Outcome authoring from evidence.** The manual half exists — the console runs discovery,
    edits capabilities against the live schema, approves them, and diffs a draft against its
-   reviewed version. What remains is the *suggestion* step: after a failed replay, offer the
+   reviewed version. What remains is the _suggestion_ step: after a failed replay, offer the
    observed screen as a candidate outcome rule to name and classify. The failure evidence
    already contains everything needed.
 2. **Cross-tenant verification on a schedule**, reporting which capabilities resolved via

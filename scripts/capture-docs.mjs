@@ -24,8 +24,15 @@ const j = async (r) => r.json();
 
 const b = await chromium.launch();
 
-async function shot(name, url, { vp = DESK, auth = false, full = false, prep } = {}) {
-  const ctx = await b.newContext({ viewport: vp, ...(auth ? { httpCredentials: CRED } : {}) });
+async function shot(
+  name,
+  url,
+  { vp = DESK, auth = false, full = false, prep } = {},
+) {
+  const ctx = await b.newContext({
+    viewport: vp,
+    ...(auth ? { httpCredentials: CRED } : {}),
+  });
   const page = await ctx.newPage();
   await page.goto(url, { waitUntil: "networkidle" });
   if (prep) await prep(page);
@@ -48,7 +55,10 @@ await shot("03-teller-login", `${TELLER}/t/firstcu`);
   let f = page.frame({ name: "mainFrame" });
   await f.fill('input[type="text"]', "admin");
   await f.fill('input[type="password"]', "admin");
-  await Promise.all([page.waitForNavigation({ waitUntil: "networkidle" }), f.click("input[type=submit]")]);
+  await Promise.all([
+    page.waitForNavigation({ waitUntil: "networkidle" }),
+    f.click("input[type=submit]"),
+  ]);
   f = page.frame({ name: "mainFrame" });
   await f.fill('input[type="text"]', "100001");
   await f.click("input[type=submit]");
@@ -63,9 +73,19 @@ await shot("03-teller-login", `${TELLER}/t/firstcu`);
 }
 
 await shot("06-console-overview", `${CONSOLE}/`, { auth: true });
-await shot("07-console-capabilities", `${CONSOLE}/capabilities`, { auth: true });
-await shot("08-capability-detail", `${CONSOLE}/capabilities/cu.member.open_subaccount@1.0.0`, { auth: true });
-await shot("09-capability-diff", `${CONSOLE}/capabilities/compare?a=cu.member.lookup_savings@1.0.0&b=cu.member.lookup_savings@1.1.0`, { auth: true });
+await shot("07-console-capabilities", `${CONSOLE}/capabilities`, {
+  auth: true,
+});
+await shot(
+  "08-capability-detail",
+  `${CONSOLE}/capabilities/cu.member.open_subaccount@1.0.0`,
+  { auth: true },
+);
+await shot(
+  "09-capability-diff",
+  `${CONSOLE}/capabilities/compare?a=cu.member.lookup_savings@1.0.0&b=cu.member.lookup_savings@1.1.0`,
+  { auth: true },
+);
 await shot("10-new-capability", `${CONSOLE}/capabilities/new`, { auth: true });
 await shot("11-runs", `${CONSOLE}/runs`, { auth: true });
 
@@ -73,21 +93,35 @@ await shot("11-runs", `${CONSOLE}/runs`, { auth: true });
 {
   const runs = await fetch(`${API}/api/runs`).then(j);
   const failed = runs.find((r) => r.status === "failed") ?? runs[0];
-  if (failed) await shot("12-run-timeline", `${CONSOLE}/runs/${failed.id}`, { auth: true });
+  if (failed)
+    await shot("12-run-timeline", `${CONSOLE}/runs/${failed.id}`, {
+      auth: true,
+    });
 }
 
 // The handoff, against a genuinely paused run.
 {
-  const invocation = fetch(`${API}/api/capabilities/cu.member.open_subaccount/invoke`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ inputs: { memberId: "100001", nickname: "Vacation Fund", initialDeposit: 50 } }),
-  }).then(j);
+  const invocation = fetch(
+    `${API}/api/capabilities/cu.member.open_subaccount/invoke`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        inputs: {
+          memberId: "100001",
+          nickname: "Vacation Fund",
+          initialDeposit: 50,
+        },
+      }),
+    },
+  ).then(j);
 
   let iv = null;
   for (let i = 0; i < 60 && !iv; i++) {
     await sleep(500);
-    iv = (await fetch(`${API}/api/interventions`).then(j)).find((x) => x.status === "pending");
+    iv = (await fetch(`${API}/api/interventions`).then(j)).find(
+      (x) => x.status === "pending",
+    );
   }
   if (iv) {
     const ctx = await b.newContext({ viewport: DESK, httpCredentials: CRED });
@@ -96,7 +130,9 @@ await shot("11-runs", `${CONSOLE}/runs`, { auth: true });
     await sleep(900);
     await page.screenshot({ path: `${OUT}/13-interventions.png` });
     console.log("  13-interventions.png");
-    await page.goto(`${CONSOLE}/session/${iv.id}`, { waitUntil: "networkidle" });
+    await page.goto(`${CONSOLE}/session/${iv.id}`, {
+      waitUntil: "networkidle",
+    });
     await sleep(3200);
     await page.getByRole("button", { name: /take control/i }).click();
     await sleep(2200);

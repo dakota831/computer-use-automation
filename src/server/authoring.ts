@@ -81,13 +81,40 @@ export type DiscoveryJob = {
   capabilityId?: string;
   version?: string;
   artifactPath?: string;
+  /**
+   * Set as soon as the run has an id, not on success.
+   *
+   * The evidence for a failed run is the evidence worth reading, so the link
+   * to it has to exist while the run is still going wrong.
+   */
   runId?: string;
   modelCalls?: number;
   steps?: number;
   error?: string;
+  /** Live progress, updated while status is "running". */
+  step?: number;
+  maxSteps?: number;
+  lastAction?: string;
+  /** Absolute ms timestamp the wall-clock budget expires at. */
+  deadline?: number;
 };
 
 const jobs = new Map<string, DiscoveryJob>();
+/** Cancellation handles, kept out of the serialised job. */
+const cancels = new Map<string, AbortController>();
+
+/**
+ * Stop a running discovery.
+ *
+ * A run can take minutes, and an operator who can see it going nowhere should
+ * not have to wait out the budget or restart the service to reclaim it.
+ */
+export function cancelDiscovery(id: string): boolean {
+  const ctl = cancels.get(id);
+  if (!ctl || jobs.get(id)?.status !== "running") return false;
+  ctl.abort();
+  return true;
+}
 
 export const listJobs = (): DiscoveryJob[] =>
   [...jobs.values()]
@@ -144,8 +171,11 @@ export function startDiscovery(
     goal: input.goal,
     entryPoint: input.entryPoint,
     startedAt: new Date().toISOString(),
+    step: 0,
   };
   jobs.set(id, job);
+  const ctl = new AbortController();
+  cancels.set(id, ctl);
 
   const origin = new URL(input.entryPoint).origin;
   const path = new URL(input.entryPoint).pathname.replace(/\/$/, "");
@@ -185,6 +215,15 @@ export function startDiscovery(
     apiKey,
     baseUrl: process.env.NVIDIA_BASE_URL,
     maxSteps: input.maxSteps ?? 25,
+    signal: ctl.signal,
+    onProgress: (p) =>
+      Object.assign(job, {
+        runId: p.runId,
+        step: p.step,
+        maxSteps: p.maxSteps,
+        lastAction: p.lastAction,
+        deadline: p.deadline,
+      }),
     timeoutMs: Number(process.env.DEX_DISCOVERY_TIMEOUT_MS ?? 5 * 60_000),
     perMinute: Number(process.env.DEX_RATE_LIMIT_PER_MIN ?? 49),
     minSpacingMs: Number(process.env.DEX_MIN_REQUEST_SPACING_MS ?? 1300),
@@ -216,9 +255,14 @@ export function startDiscovery(
       Object.assign(job, {
         status: "failed" as JobStatus,
         finishedAt: new Date().toISOString(),
-        error: String(e).slice(0, 400),
+        // An operator who pressed Stop should read that, not whichever
+        // internal call happened to notice the abort first.
+        error: ctl.signal.aborted
+          ? "Stopped by the operator."
+          : String(e).slice(0, 400),
       });
-    });
+    })
+    .finally(() => cancels.delete(id));
 
   return { job };
 }

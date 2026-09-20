@@ -13,6 +13,7 @@ import {
   listJobs,
   getJob,
   saveCapability,
+  cancelDiscovery,
   discoveryOrigins,
   discoveryTargets,
 } from "./authoring.js";
@@ -204,7 +205,19 @@ app.post("/api/discovery", (req, res) => {
 app.get("/api/discovery/:id", (req, res) => {
   const j = getJob(String(req.params.id));
   if (!j) return res.status(404).json({ error: "no such job" });
+  // A running job changes every step, and a 304 from a stale ETag would freeze
+  // the progress panel on whatever it first showed.
+  if (j.status === "running") res.set("Cache-Control", "no-store");
   res.json(j);
+});
+
+/** Stop a run that is going nowhere, without waiting out its budget. */
+app.post("/api/discovery/:id/cancel", (req, res) => {
+  const id = String(req.params.id);
+  if (!getJob(id)) return res.status(404).json({ error: "no such job" });
+  if (!cancelDiscovery(id))
+    return res.status(409).json({ error: "job is not running" });
+  res.status(202).json({ ok: true });
 });
 
 /** Save an edited capability. Validated against the schema replay parses with. */

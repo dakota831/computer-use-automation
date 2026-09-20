@@ -11,34 +11,34 @@ the moment of the decision rather than reconstructed afterwards.
 Newest entries are at the bottom of the file; this index groups them by subject.
 
 **Foundations**  
-[D1](#d1--typescript-single-package) typescript, single package  ·  [D2](#d2--perception-is-the-accessibility-tree-over-cdp-not-the-dom) perception is the accessibility tree over cdp, not the dom  ·  [D3](#d3--nvidia-nim-as-the-model-provider) nvidia nim as the model provider
+[D1](#d1--typescript-single-package) typescript, single package · [D2](#d2--perception-is-the-accessibility-tree-over-cdp-not-the-dom) perception is the accessibility tree over cdp, not the dom · [D3](#d3--nvidia-nim-as-the-model-provider) nvidia nim as the model provider
 
 **The artifact and how controls are found**  
-[D4](#d4--locator-strategies-are-ranked-and-ambiguity-is-a-failure) locator strategies are ranked, and ambiguity is a failure  ·  [D5](#d5--one-assertion-vocabulary-for-checkpoints-success-and-error-detection) one assertion vocabulary for checkpoints, success, and error detection  ·  [D11](#d11--the-surface-seam-and-a-bug-that-proves-why-geometry-is-not-a-locator) the surface seam, and a bug that proves why geometry is not a locator  ·  [D21](#d21--visual-realism-and-machine-hostility-are-independent-axes) visual realism and machine hostility are independent axes
+[D4](#d4--locator-strategies-are-ranked-and-ambiguity-is-a-failure) locator strategies are ranked, and ambiguity is a failure · [D5](#d5--one-assertion-vocabulary-for-checkpoints-success-and-error-detection) one assertion vocabulary for checkpoints, success, and error detection · [D11](#d11--the-surface-seam-and-a-bug-that-proves-why-geometry-is-not-a-locator) the surface seam, and a bug that proves why geometry is not a locator · [D21](#d21--visual-realism-and-machine-hostility-are-independent-axes) visual realism and machine hostility are independent axes
 
 **Replay, errors and determinism**  
-[D9](#d9--a-business-outcome-is-not-throwable) a business outcome is not throwable  ·  [D12](#d12--after-an-action-wait-for-a-recognised-state-not-just-the-expected-one) after an action, wait for a *recognised* state, not just the expected one  ·  [D32](#d32--the-session-clock-became-a-checkpoint) the session clock became a checkpoint
+[D9](#d9--a-business-outcome-is-not-throwable) a business outcome is not throwable · [D12](#d12--after-an-action-wait-for-a-_recognised_-state-not-just-the-expected-one) after an action, wait for a _recognised_ state, not just the expected one · [D32](#d32--the-session-clock-became-a-checkpoint) the session clock became a checkpoint
 
 **Safety and risk**  
-[D6](#d6--risk-is-classified-at-record-time-not-replay-time) risk is classified at record time, not replay time  ·  [D8](#d8--redaction-happens-on-the-write-path-not-at-call-sites) redaction happens on the write path, not at call sites  ·  [D10](#d10--policy-is-checked-before-every-action-and-enforced-twice) policy is checked before every action, and enforced twice  ·  [D14](#d14--the-model-never-sees-a-credential) the model never sees a credential  ·  [D31](#d31--what-a-line-by-line-review-turned-up) what a line-by-line review turned up
+[D6](#d6--risk-is-classified-at-record-time-not-replay-time) risk is classified at record time, not replay time · [D8](#d8--redaction-happens-on-the-write-path-not-at-call-sites) redaction happens on the write path, not at call sites · [D10](#d10--policy-is-checked-before-every-action-and-enforced-twice) policy is checked before every action, and enforced twice · [D14](#d14--the-model-never-sees-a-credential) the model never sees a credential · [D31](#d31--what-a-line-by-line-review-turned-up) what a line-by-line review turned up
 
 **Discovery and the review loop**  
-[D15](#d15--a-discovered-capability-is-always-a-draft) a discovered capability is always a draft  ·  [D16](#d16--two-recorder-bugs-the-first-real-run-exposed) two recorder bugs the first real run exposed  ·  [D17](#d17--provider-quirks-belong-at-the-adapter-boundary) provider quirks belong at the adapter boundary  ·  [D26](#d26--making-the-nav-real-broke-the-agent-and-that-was-worth-knowing) making the nav real broke the agent, and that was worth knowing  ·  [D28](#d28--the-review-loop-is-operable-which-is-what-makes-the-draft-gate-real) the review loop is operable, which is what makes the draft gate real  ·  [D34](#d34--two-gaps-the-brief-caught-that-i-had-not) two gaps the brief caught that i had not
+[D15](#d15--a-discovered-capability-is-always-a-draft) a discovered capability is always a draft · [D16](#d16--two-recorder-bugs-the-first-real-run-exposed) two recorder bugs the first real run exposed · [D17](#d17--provider-quirks-belong-at-the-adapter-boundary) provider quirks belong at the adapter boundary · [D26](#d26--making-the-nav-real-broke-the-agent-and-that-was-worth-knowing) making the nav real broke the agent, and that was worth knowing · [D28](#d28--the-review-loop-is-operable-which-is-what-makes-the-draft-gate-real) the review loop is operable, which is what makes the draft gate real · [D34](#d34--two-gaps-the-brief-caught-that-i-had-not) two gaps the brief caught that i had not
 
 **Escalation and control transfer**  
-[D18](#d18--the-control-lease-and-why-automation-parks-rather-than-stops) the control lease, and why automation parks rather than stops  ·  [D19](#d19--approving-a-risky-step-is-not-the-same-as-doing-it) approving a risky step is not the same as doing it  ·  [D24](#d24--an-escalation-nobody-answers-needs-a-bounded-outcome) an escalation nobody answers needs a bounded outcome
+[D18](#d18--the-control-lease-and-why-automation-parks-rather-than-stops) the control lease, and why automation parks rather than stops · [D19](#d19--approving-a-risky-step-is-not-the-same-as-doing-it) approving a risky step is not the same as doing it · [D24](#d24--an-escalation-nobody-answers-needs-a-bounded-outcome) an escalation nobody answers needs a bounded outcome
 
 **Multi-tenant**  
 [D25](#d25--cross-tenant-reuse-demonstrated-rather-than-argued) cross-tenant reuse, demonstrated rather than argued
 
 **Interface and operations**  
-[D20](#d20--reversing-d-nothing-the-console-needed-a-real-router) reversing d-nothing: the console needed a real router  ·  [D22](#d22--one-theme) one theme  ·  [D23](#d23--the-mobile-overflow-was-a-flexgrid-default-not-a-styling-mistake) the mobile overflow was a flex/grid default, not a styling mistake  ·  [D29](#d29--jump-to-next-anomaly-and-comparing-capabilities) jump-to-next-anomaly, and comparing capabilities  ·  [D30](#d30--min-width-auto-cost-me-four-attempts-so-here-is-the-rule) `min-width: auto` cost me four attempts, so here is the rule  ·  [D33](#d33--not-secure-was-never-the-certificate) "not secure" was never the certificate  ·  [D35](#d35--a-shared-footer-with-relative-links-pointed-at-the-wrong-site) a shared footer with relative links pointed at the wrong site  ·  [D36](#d36--dead-and-mis-named-npm-scripts) dead and mis-named npm scripts
+[D20](#d20--reversing-d-nothing-the-console-needed-a-real-router) reversing d-nothing: the console needed a real router · [D22](#d22--one-theme) one theme · [D23](#d23--the-mobile-overflow-was-a-flexgrid-default-not-a-styling-mistake) the mobile overflow was a flex/grid default, not a styling mistake · [D29](#d29--jump-to-next-anomaly-and-comparing-capabilities) jump-to-next-anomaly, and comparing capabilities · [D30](#d30--min-width-auto-cost-me-four-attempts-so-here-is-the-rule) `min-width: auto` cost me four attempts, so here is the rule · [D33](#d33--not-secure-was-never-the-certificate) "not secure" was never the certificate · [D35](#d35--a-shared-footer-with-relative-links-pointed-at-the-wrong-site) a shared footer with relative links pointed at the wrong site · [D36](#d36--dead-and-mis-named-npm-scripts) dead and mis-named npm scripts
 
 **Measurements and mistakes worth keeping**  
-[D7](#d7--measured-against-the-real-target-app-not-assumed) measured against the real target app, not assumed  ·  [D13](#d13--two-silent-patch-failures-and-what-they-cost) two silent patch failures, and what they cost  ·  [D27](#d27--the-evidence-generator-deleted-the-evidence-it-was-meant-to-protect) the evidence generator deleted the evidence it was meant to protect
+[D7](#d7--measured-against-the-real-target-app-not-assumed) measured against the real target app, not assumed · [D13](#d13--two-silent-patch-failures-and-what-they-cost) two silent patch failures, and what they cost · [D27](#d27--the-evidence-generator-deleted-the-evidence-it-was-meant-to-protect) the evidence generator deleted the evidence it was meant to protect
 
 **Also**  
-[D37](#d37--documentation-is-checked-not-proofread) documentation is checked, not proofread  ·  [D38](#d38--reportmd-was-twice-the-length-the-brief-asked-for) report.md was twice the length the brief asked for  ·  [D39](#d39--making-template-references-hard-to-get-wrong) making template references hard to get wrong  ·  [D40](#d40--authoring-rewritten-for-the-person-who-actually-does-it) authoring, rewritten for the person who actually does it
+[D37](#d37--documentation-is-checked-not-proofread) documentation is checked, not proofread · [D38](#d38--reportmd-was-twice-the-length-the-brief-asked-for) report.md was twice the length the brief asked for · [D39](#d39--making-template-references-hard-to-get-wrong) making template references hard to get wrong · [D40](#d40--authoring-rewritten-for-the-person-who-actually-does-it) authoring, rewritten for the person who actually does it · [D41](#d41--a-timeout-that-was-only-ever-a-report) a timeout that was only ever a report · [D42](#d42--the-build-and-the-deploy-were-two-steps-and-they-drifted) the build and the deploy were two steps, and they drifted
 
 ---
 
@@ -68,10 +68,11 @@ would have made the desktop story in brief §3.7 fiction.
 
 Two limits measured on a real page during setup, both now designed for rather than
 discovered late:
-  - an unlabeled `<input>` in a table cell does **not** appear in the AX tree with a
-    name, though its label cell does → hence the `label_proximity` locator strategy
-  - `getFullAXTree` does not cross into iframes on its own → hence `framePath` on every
-    target descriptor, resolved with per-frame CDP sessions
+
+- an unlabeled `<input>` in a table cell does **not** appear in the AX tree with a
+  name, though its label cell does → hence the `label_proximity` locator strategy
+- `getFullAXTree` does not cross into iframes on its own → hence `framePath` on every
+  target descriptor, resolved with per-frame CDP sessions
 
 Screenshots are captured as evidence and for the human handoff, never as a primary
 locator. Coordinates convert a layout shift into a silent misclick.
@@ -87,7 +88,7 @@ against the Zod action schema before executing it — a malformed call from a we
 becomes a retry with a validation message, not a crash or a wrong click.
 
 Worth noting: because perception is the AX tree (text) rather than screenshots, this
-needs a *text* model, not a vision model. That is what makes a free tier viable at all,
+needs a _text_ model, not a vision model. That is what makes a free tier viable at all,
 and it is a genuine cost argument for the production system, not just for this exercise.
 
 ## D4 — Locator strategies are ranked, and ambiguity is a failure
@@ -115,7 +116,7 @@ be more expressive and much harder to review, and review is the point.
 ## D6 — Risk is classified at record time, not replay time
 
 Each step carries `riskClass`. Combined with `status: draft | approved`, this means the
-risk surface of a capability is fixed and reviewable *before* it is ever allowed to run
+risk surface of a capability is fixed and reviewable _before_ it is ever allowed to run
 unattended — replay can only ever execute steps that were recorded and approved earlier.
 That is a stronger guarantee than any runtime heuristic, because it does not depend on
 correctly classifying a novel action under time pressure.
@@ -131,13 +132,13 @@ they are the empirical justification for D2 and D4, not just an argument:
    content is invisible from the top frame.
 
 2. **Frame ids must come from `Page.getFrameTree`.** Playwright's internal frame handle
-   is not a CDP frame id. Passing it silently returns the *top* frame's tree again
+   is not a CDP frame id. Passing it silently returns the _top_ frame's tree again
    rather than erroring — a quiet wrong answer, which is the failure mode this whole
    project is about. With real ids, the inner frame yields 34 nodes.
 
 3. **The login fields have no accessible name at all.** The inner frame exposes two
    nodes of role `textbox` with empty names, while "User ID:" and "Password:" exist
-   as separate `LayoutTableCell` nodes beside them. Role+name targeting *cannot*
+   as separate `LayoutTableCell` nodes beside them. Role+name targeting _cannot_
    address these controls.
 
 Finding 3 is the one that matters. It is the exact legacy pathology the brief describes,
@@ -166,7 +167,7 @@ debugging. `secret` keeps nothing at all — length leaks information about a pa
 `BusinessOutcome` is a plain type, not an `Error` subclass. "No such member" cannot be
 `throw`n, so the most common design mistake in this problem is unrepresentable rather
 than merely discouraged. Escalation is deliberately not a fourth kind of result either:
-it is a *response* to a hard failure or a risky step, which keeps "what happened"
+it is a _response_ to a hard failure or a risky step, which keeps "what happened"
 separate from "what we decided to do about it".
 
 ## D10 — Policy is checked before every action, and enforced twice
@@ -174,7 +175,7 @@ separate from "what we decided to do about it".
 A plan approved up front says nothing about what the next action will be: during
 discovery the model picks each action freshly, and during replay a page can redirect
 between steps. So `PolicyEngine.check()` runs per action, and non-navigation actions are
-validated against the *current* URL — a session that has drifted off-allowlist cannot
+validated against the _current_ URL — a session that has drifted off-allowlist cannot
 keep clicking.
 
 The allowlist is a literal-match language (origin, or `/*` prefix), not regex.
@@ -220,19 +221,19 @@ argument in this codebase for why coordinates are recorded as evidence only and 
 used as a locator — a descriptor that resolves by role and label would have been
 unaffected by the offset bug, because it never needed to know where anything was.
 
-## D12 — After an action, wait for a *recognised* state, not just the expected one
+## D12 — After an action, wait for a _recognised_ state, not just the expected one
 
 The first replay loop checked the outcome detectors once, immediately after acting, and
 then polled only the checkpoint. That is wrong, and the target app exposed it:
 
 A click that submits a form starts a navigation, so observing straight afterwards
-samples the *old* page. For member 200001 the permission-denied screen was therefore
+samples the _old_ page. For member 200001 the permission-denied screen was therefore
 never detected. Worse, that screen reuses the "Member Detail" panel title, so the
 checkpoint later matched, every step "passed", and the run died at the very end with
 "could not extract declared outputs" — a legitimate business outcome reported as an
 extraction bug, three steps away from the actual cause.
 
-Outcomes and checkpoints are now polled *together* in one `settle()` loop: after every
+Outcomes and checkpoints are now polled _together_ in one `settle()` loop: after every
 action we wait until the page is either where we expected to be, or somewhere we
 explicitly know about, whichever comes first. Timing out means neither, which is a real
 failure worth surfacing.
@@ -259,7 +260,7 @@ prevent.
 
 ## D14 — The model never sees a credential
 
-The agent is told which secret *keys* exist and emits `{{secret:corelink.password}}`;
+The agent is told which secret _keys_ exist and emits `{{secret:corelink.password}}`;
 the loop substitutes the value at the moment of typing. So the password is absent from
 the prompt, from the transcript, and from the artifact — not redacted after the fact,
 never present. The same template is what replay resolves later, so one mechanism serves
@@ -269,12 +270,12 @@ discovery and production.
 
 The recorder emits `status: "draft"`, never `approved`, and this is a correctness claim
 rather than caution. One successful run proves the happy path. It cannot know what the
-*error* states look like, because it never saw one.
+_error_ states look like, because it never saw one.
 
 The evidence is direct. The agent's own artifact replays cleanly for member 100001 and
 100003, and on 999999 it returns `CHECKPOINT_FAILED` — technically true, but useless to a
 caller. The hand-authored baseline returns `MEMBER_NOT_FOUND`, because a human wrote the
-outcome table. That gap *is* the review work, and it is exactly what the draft → approved
+outcome table. That gap _is_ the review work, and it is exactly what the draft → approved
 gate exists to force. A capability that has never been reviewed cannot run unattended.
 
 ## D16 — Two recorder bugs the first real run exposed
@@ -293,7 +294,7 @@ now both excluded from checkpoint text.
 **An empty success condition.** Deriving it by diffing the final screen against the one
 immediately before found nothing changed, yielding `all: []` — which `waitForCheckpoint`
 satisfies trivially, so every replay would have reported success while verifying nothing.
-It is now derived against the *first* observation of the run ("what is true at the end
+It is now derived against the _first_ observation of the run ("what is true at the end
 that was not true at the start"), and an empty result is a hard error: the recorder
 refuses to emit a capability that would claim success without checking anything.
 
@@ -311,7 +312,7 @@ provider-agnostic client: the abstraction earned its keep within an hour of firs
 
 Exactly one party may act on a session at a time, and the lease is the single
 authoritative answer to "who". Automation holds it by default. When a human takes over,
-the run does not terminate — it *parks*, awaiting the lease. Terminating would lose the
+the run does not terminate — it _parks_, awaiting the lease. Terminating would lose the
 session, which defeats the requirement: the human has to operate the same live session
 and hand it back so the run continues from where it stopped.
 
@@ -322,12 +323,12 @@ cookies and its position in the flow are untouched throughout.
 
 Both sides are gated, and both gates are server-side:
 
-  - automation calls `beforeAction` before every action, which awaits the lease
-  - operator input is checked with `assertHolder("operator")` immediately before it is
-    dispatched into the page
+- automation calls `beforeAction` before every action, which awaits the lease
+- operator input is checked with `assertHolder("operator")` immediately before it is
+  dispatched into the page
 
 The console also disables its own controls, but that is a courtesy. Demonstrated
-directly: operator input sent *before* taking control is refused by the server with
+directly: operator input sent _before_ taking control is refused by the server with
 `control is held by "automation"`. A client that ignores the UI still cannot act.
 
 Operator input goes through the same CDP Input domain the automation uses, so the
@@ -338,8 +339,8 @@ path, exercised by both.
 
 Two distinct resolutions, because they mean different things to the audit trail:
 
-  `resume`         the human authorised it; automation performs the step
-  `step_completed` the human performed it themselves; automation skips it
+`resume` the human authorised it; automation performs the step
+`step_completed` the human performed it themselves; automation skips it
 
 The first is what the irreversible-step gate is for. Replay reaches `s9_confirm`, refuses
 to create an account on its own authority even though the capability is approved and
@@ -347,7 +348,7 @@ every prior step ran unattended, and asks. On approval it performs the click its
 human decided; the machine acted. That distinction is exactly what an auditor needs, and
 collapsing the two would lose it.
 
-Recorded human actions log key *names*, never typed characters — an operator entering a
+Recorded human actions log key _names_, never typed characters — an operator entering a
 member ID or a credential must not have it captured in an audit log.
 
 ## D20 — Reversing D-nothing: the console needed a real router
@@ -366,7 +367,7 @@ a status bar naming the app server, and a full footer. Real bank back-office sys
 not sparse — they are dense and heavily chromed — so a stripped-down page was an
 unrealistic target, not a neutral one.
 
-None of the properties that make it a *useful* target changed: content still lives inside
+None of the properties that make it a _useful_ target changed: content still lives inside
 an iframe, forms still lay out with nested tables, controls still carry generated
 `ctl00$MainContent$` names, and there are still no test IDs and no `<label for>`
 anywhere. The login fields still have no accessible name at all.
@@ -425,18 +426,18 @@ and both halves of the timeout (it fires when ignored; it is cancelled when answ
 ## D25 — Cross-tenant reuse, demonstrated rather than argued
 
 Stretch goal: one artifact recorded on a base install, applied to a second variant with
-per-variant overrides. Previously the *mechanisms* existed (ranked strategies as aliases,
+per-variant overrides. Previously the _mechanisms_ existed (ranked strategies as aliases,
 two tenants) but nothing proved they composed. Now they do.
 
 `tenantOverrides` on the capability carries only what a base recording genuinely cannot
 know — where this institution's install lives, and any label it has renamed since.
 `specializeForTenant()` returns a new capability rather than mutating, so one loaded
-artifact serves every tenant in the same process. Aliases are *appended* to the ranked
+artifact serves every tenant in the same process. Aliases are _appended_ to the ranked
 strategies, never substituted, so the base labels stay the higher-confidence first choice
 and the tenant's wording is a recorded fallback.
 
 Deliberately narrow: an override can change the entry point and add aliases. It cannot
-change steps, outcomes or policy. A tenant needing different *behaviour* is a fork worth
+change steps, outcomes or policy. A tenant needing different _behaviour_ is a fork worth
 reviewing, not a config value, and gets its own artifact with `tenant: "<id>"`.
 
 **The demonstration.** `cu.member.read_savings_balance`, recorded against First Community,
@@ -445,7 +446,7 @@ replayed against Summit — a different host, "Member Number" instead of "Member
 order, and an extra acceptable-use screen after sign-in. Result: `success`, same outputs.
 `999999` still returns `MEMBER_NOT_FOUND`.
 
-The run log is the interesting part, because it shows *how*:
+The run log is the interesting part, because it shows _how_:
 
 ```
 entryPoint: .../t/summit   tenant: summit
@@ -470,9 +471,9 @@ Two separate causes, both worth fixing rather than papering over.
 **A latent bug the chrome exposed.** `observeSettled` waited for "any actionable node"
 before showing the model a screen. That was adequate while the only actionable things
 were inside the content frame. With a real navigation bar the top-frame links are
-*always* actionable, so the check passed instantly and the model was handed a page whose
+_always_ actionable, so the check passed instantly and the model was handed a page whose
 working area had not loaded. It then reasoned correctly from a screen that was simply
-wrong. Now, when child frames exist, the settle waits for actionable nodes *inside* one —
+wrong. Now, when child frames exist, the settle waits for actionable nodes _inside_ one —
 chrome is not content.
 
 **A prompt gap.** The agent was never told the difference between application chrome and
@@ -486,7 +487,7 @@ perception feeding it was wrong, which is the behaviour I would want.
 ## D27 — The evidence generator deleted the evidence it was meant to protect
 
 `generate-evidence.ts` preserved directories matching `discovery-*` and deleted the rest,
-then renamed the survivor to `01-discovery-llm-run`. On the *next* run that name no longer
+then renamed the survivor to `01-discovery-llm-run`. On the _next_ run that name no longer
 matched the pattern, so the script deleted the one artifact in the whole repository that
 costs a model call to reproduce.
 
@@ -547,17 +548,17 @@ lines makes O(n·m) imperceptible and avoids a dependency.
 ## D30 — `min-width: auto` cost me four attempts, so here is the rule
 
 The capabilities page overflowed by 9px on a phone and resisted three fixes. The chain:
-the card is a grid *item*; grid and flex items default to `min-width: auto`; the card's
+the card is a grid _item_; grid and flex items default to `min-width: auto`; the card's
 min-content was set by a title using `truncate`, which implies `white-space: nowrap`, so
 the "truncating" element reported its full string as a minimum and widened everything
 above it.
 
 Two rules worth stating plainly, because I rediscovered both the hard way:
 
-  - `truncate` does nothing useful on a flex/grid child without `min-w-0`. It will not
-    ellipsis; it will widen the parent.
-  - Any flex or grid item that contains text you expect to shrink needs `min-w-0`,
-    including the item itself, not only its container.
+- `truncate` does nothing useful on a flex/grid child without `min-w-0`. It will not
+  ellipsis; it will widen the parent.
+- Any flex or grid item that contains text you expect to shrink needs `min-w-0`,
+  including the item itself, not only its container.
 
 I also wasted one attempt patching the first `className="no-underline"` in the file, which
 was a button rather than the card. Measuring beat guessing: walking the DOM for elements
@@ -617,7 +618,7 @@ shapes anywhere in the line. Three bad markers disappear at once: password bulle
 (verifies nothing), the clock (true once), and bare currency like `$8,214.55` (true for
 one member and wrong for every other).
 
-The wider point: a derived checkpoint is a guess about what *characterises* a screen, and
+The wider point: a derived checkpoint is a guess about what _characterises_ a screen, and
 the failure mode is not an error — it is a capability that silently stops working later.
 Adding realistic chrome to the application introduced volatile text, and the recorder had
 no notion that some text is unsuitable to assert on. It does now, and
@@ -636,7 +637,7 @@ Two real causes, neither of them TLS:
 
 **No HSTS.** Typing a bare hostname makes the browser try http first. The 301 to https is
 immediate, but Chrome marks that hop "Not secure" before it lands. Added
-`Strict-Transport-Security` to every TLS server block, at `max-age=86400` and *without*
+`Strict-Transport-Security` to every TLS server block, at `max-age=86400` and _without_
 `includeSubDomains` — HSTS is sticky, and a demo has no business pinning a year-long
 policy across every subdomain.
 
@@ -780,7 +781,7 @@ than the origin allowlist, since the entry point can only be one of a closed lis
 step budget is gone; it was a safety bound the operator had no basis to set, so the server
 keeps it. Values appear as rows the moment the task references `{{something}}`, and vanish
 when it stops. The identifier is derived from the title, with an override behind
-*Advanced*. Credentials are not shown at all: signing in is a fixed part of every task and
+_Advanced_. Credentials are not shown at all: signing in is a fixed part of every task and
 the executor supplies them, so there is no reason for an operator to see a
 `{{secret:…}}` reference and every reason not to.
 
@@ -788,8 +789,8 @@ the executor supplies them, so there is no reason for an operator to see a
 write down what should happen when the application does something other than succeed — so
 that is what the screen exposes. Sign-in steps are collapsed to one line, because nobody
 reviews them. Outcomes are asked for as "what happened", "how would you know", "what
-should happen then", with dispositions worded as *Report it as the answer* / *Deal with it
-and carry on* / *Ask a person* / *Stop with an error*. The raw document stays reachable
+should happen then", with dispositions worded as _Report it as the answer_ / _Deal with it
+and carry on_ / _Ask a person_ / _Stop with an error_. The raw document stays reachable
 behind a disclosure for the rare case that needs it.
 
 **The bug this exposed, which matters more than the UI.** The first version of the editor
@@ -806,3 +807,75 @@ Now verified end to end: an operator adds "this teller may not view the record" 
 form, and `200001` returns `THIS_TELLER_MAY_NOT_VIEW_THE_RECORD` as a business outcome
 instead of `CHECKPOINT_FAILED` — while `MEMBER_NOT_FOUND`'s original detector survives the
 save byte for byte.
+
+## D41 — A timeout that was only ever a report
+
+An operator taught a capability, watched the console say `PENDING` for five minutes, and
+gave up. Three separate faults met in that one screen, and only one of them was the model's.
+
+**The run could not do what was asked.** The goal was "deduct $0.99 listed as Maintenance
+Fee from all their accounts". The teller application has no fee-posting screen — its only
+write action is _Open Sub-Account_ — so the control the agent needed did not exist. It hunted
+for twenty-one steps, signed out, searched again, and ran out of clock. That part is
+arguably correct behaviour: it declined to invent a step. But it never said so.
+
+The goal was also unrecordable in a second way. "All their accounts" is a loop over a count
+known only at run time, and a capability is a fixed list of steps. Even with a fee screen,
+one pass could only ever have recorded one account.
+
+**The budget was not a bound.** `timeoutMs` was checked between steps, and nothing bounded
+a request in flight. One completion took 108 seconds; the run finished 11 seconds past a
+300-second budget having spent most of it inside two calls. The real ceiling was worse than
+that: `fetch` with no signal inherits undici's 300s header timeout, and with four retries
+the worst case for a _single step_ was longer than the entire run was permitted. A wall-clock
+budget enforced only at step boundaries is a report on how long the run took, not a limit
+on it. The client now takes the deadline as an `AbortSignal` and a per-request ceiling, will
+not start an attempt it has no time to act on, and will not back off past the budget.
+
+Writing the test for that found a second bug in the fix. The guard threw a plain `Error`
+from inside the retry loop's `try`, where the loop's own `catch` caught it and retried —
+so the escape hatch landed one rung further down the ladder it was trying to leave. Budget
+and cancellation failures are now a distinct `NonRetryable` type the catch arm rethrows.
+A guard inside a retry loop has to be a different _kind_ of failure, not just a different
+message.
+
+**Nothing was visible while it happened.** The job carried its status and nothing else, the
+badge rendered `running` as `PENDING`, the evidence link appeared only on success, and there
+was no way to stop it. The panel now shows the step, the elapsed time against the budget,
+and the agent's own sentence about what it is doing — which is a better description than any
+summary generated from the tool name, because the model already wrote it for a human. The
+evidence link exists from the first step, since the evidence for a failed run is the evidence
+worth reading. A Stop button aborts the in-flight request and reports "Stopped by the
+operator" rather than whichever internal call first noticed the abort.
+
+**And the form now says so up front.** A goal containing "all", "each" or "every" is flagged
+before the run starts, explaining that a capability is learned once for one record. Five
+minutes of silence followed by `timeout` teaches an operator nothing; a sentence in the form
+costs nothing and is the only feedback available before the clock starts.
+
+Three prose-only replies in a row now end the run as a dead end rather than burning the
+budget: five of the twenty-one steps in that run were the model narrating instead of
+deciding, and the prompt it gets back now names `blocked` as the thing to call when the
+screen has no control that would help.
+
+The check that opens a run timeline and asserts it has anomalies was asserting on the test
+data rather than the console — a clean run legitimately has none, so it failed the moment a
+clean run was the most recent. It now scans for a run that has them.
+
+## D42 — The build and the deploy were two steps, and they drifted
+
+Verifying the fix above turned up something worse than the bug. `npm run web:build`
+writes to `dist-web/`; nginx serves `/var/www/dex/app`. Nothing connected them but my
+memory of copying one to the other. The live site had been serving a bundle from an
+earlier build for some time, so a fix could be committed, tested green against
+`127.0.0.1:4000`, and still be absent from the URL the operator actually opens.
+
+This is the same failure as the silent save in [D40](#d40--authoring-rewritten-for-the-person-who-actually-does-it),
+one layer out: a check that passes against the artifact rather than against the thing
+being served will confirm work that never shipped. Local tests were honest about the
+repository and said nothing about the deployment.
+
+`npm run deploy:web` now builds and `rsync --delete`s in one command, and the interaction
+sweep is run against `https://console.dexdash.cloud` — the real host, over TLS, through
+basic auth — rather than only the loopback port. Testing the loopback tests the build;
+testing the URL tests the deploy.

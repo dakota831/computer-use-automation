@@ -90,6 +90,14 @@ export class RateLimiter {
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
+/**
+ * A failure that retrying cannot help: the budget is gone, or we were asked to
+ * stop. It needs to be a distinct type because the retry loop's catch arm is
+ * otherwise indiscriminate - throwing a plain Error to escape the ladder just
+ * lands one rung further down it, which is exactly the bug this class fixes.
+ */
+class NonRetryable extends Error {}
+
 export type NimOptions = {
   apiKey: string;
   baseUrl?: string;
@@ -97,6 +105,15 @@ export type NimOptions = {
   perMinute?: number;
   minSpacingMs?: number;
   maxRetries?: number;
+  /**
+   * Ceiling on a single HTTP request, independent of any overall budget.
+   *
+   * Without this a fetch inherits undici's 300s header timeout, so one slow
+   * free-tier response can outlast the agent's entire wall-clock budget - and
+   * with retries the worst case is that multiplied by maxRetries. A bound the
+   * caller can reason about has to live here, not in the loop above.
+   */
+  requestTimeoutMs?: number;
   temperature?: number;
   maxTokens?: number;
   onEvent?: (kind: string, data: Record<string, unknown>) => void;
@@ -116,21 +133,52 @@ export class NimClient {
     );
   }
 
+  /**
+   * One chat completion, bounded twice over.
+   *
+   * `deadline` is the caller's overall budget as an absolute timestamp. It is
+   * honoured before each attempt and while backing off, so a run cannot spend
+   * its remaining time asleep between retries. `requestTimeoutMs` bounds the
+   * individual request. Both matter: the first stops the retry ladder running
+   * past the budget, the second stops a single hung response doing the same.
+   */
   async chat(args: {
     messages: ChatMessage[];
     tools?: ToolDef[];
     toolChoice?: "auto" | "required" | "none";
+    deadline?: number;
+    signal?: AbortSignal;
   }): Promise<ChatResult> {
     const maxRetries = this.opts.maxRetries ?? 4;
+    const requestTimeoutMs = this.opts.requestTimeoutMs ?? 60_000;
     let lastErr: unknown;
 
+    /** Time left in the caller's budget, or Infinity when it set none. */
+    const remaining = () =>
+      args.deadline === undefined ? Infinity : args.deadline - Date.now();
+
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      // Below this there is no point asking: the request cannot come back in
+      // time to be acted on, and starting it would only overrun the budget.
+      if (remaining() < 1_000)
+        throw new NonRetryable("model request abandoned: run budget exhausted");
+      if (args.signal?.aborted)
+        throw new NonRetryable("model request abandoned: cancelled");
+
       await this.limiter.acquire();
       const t0 = Date.now();
+
+      // Never wait longer on one request than the whole run has left.
+      const attemptMs = Math.min(requestTimeoutMs, remaining());
+      const ctl = new AbortController();
+      const timer = setTimeout(() => ctl.abort(), attemptMs);
+      const relay = () => ctl.abort();
+      args.signal?.addEventListener("abort", relay, { once: true });
 
       try {
         const res = await fetch(`${this.baseUrl}/chat/completions`, {
           method: "POST",
+          signal: ctl.signal,
           headers: {
             Authorization: `Bearer ${this.opts.apiKey}`,
             "Content-Type": "application/json",
@@ -161,6 +209,10 @@ export class NimClient {
           });
           if (attempt === maxRetries)
             throw new Error(`${res.status} after ${maxRetries} retries`);
+          if (backoff >= remaining())
+            throw new NonRetryable(
+              `${res.status}; no budget left to retry (${Math.max(0, Math.round(remaining() / 1000))}s remaining)`,
+            );
           await sleep(backoff);
           continue;
         }
@@ -179,8 +231,26 @@ export class NimClient {
         };
       } catch (e) {
         lastErr = e;
+        if (e instanceof NonRetryable) throw e;
+        // An abort is the budget or the operator talking. Retrying would
+        // defeat the thing that aborted us, so it ends the call.
+        if (ctl.signal.aborted) {
+          const why = args.signal?.aborted
+            ? "cancelled"
+            : `no response within ${Math.round(attemptMs / 1000)}s`;
+          this.opts.onEvent?.("model_timeout", { attempt, attemptMs, why });
+          throw new NonRetryable(`model request abandoned: ${why}`);
+        }
         if (attempt === maxRetries) break;
-        await sleep(Math.min(30_000, 2 ** attempt * 1000));
+        const backoff = Math.min(30_000, 2 ** attempt * 1000);
+        if (backoff >= remaining())
+          throw new NonRetryable(
+            `model request failed with no budget left to retry: ${String(lastErr)}`,
+          );
+        await sleep(backoff);
+      } finally {
+        clearTimeout(timer);
+        args.signal?.removeEventListener("abort", relay);
       }
     }
     throw new Error(`model request failed: ${String(lastErr)}`);

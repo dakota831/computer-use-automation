@@ -243,10 +243,17 @@ export type DiscoveryJob = {
   finishedAt?: string;
   capabilityId?: string;
   version?: string;
+  /** Present as soon as the run starts, so failed runs are inspectable too. */
   runId?: string;
   modelCalls?: number;
   steps?: number;
   error?: string;
+  /** Live progress while status is "running". */
+  step?: number;
+  maxSteps?: number;
+  lastAction?: string;
+  /** Absolute ms timestamp the wall-clock budget expires at. */
+  deadline?: number;
 };
 
 export type DiscoveryTarget = { id: string; label: string; entryPoint: string };
@@ -293,6 +300,8 @@ export const authoring = {
   start: (body: Record<string, unknown>) =>
     postX<DiscoveryJob>("/api/discovery", body),
   job: (id: string) => get<DiscoveryJob>(`/api/discovery/${id}`),
+  cancel: (id: string) =>
+    postX<{ ok: true }>(`/api/discovery/${id}/cancel`, {}),
   save: (ref: string, capability: unknown) =>
     put<{ ok: true; path: string; id: string; version: string }>(
       `/api/capabilities/${ref}`,
