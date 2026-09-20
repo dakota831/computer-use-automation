@@ -4,7 +4,7 @@
   "version": "1.0.0",
   "title": "Post a maintenance fee",
   "description": "Signs in, finds a member, posts a fee to one of their accounts and reads back the reference and resulting balance.",
-  "status": "draft",
+  "status": "approved",
   "surface": {
     "kind": "web",
     "entryPoint": "http://127.0.0.1:8080/t/firstcu",

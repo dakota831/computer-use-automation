@@ -10,14 +10,31 @@
  * Measured tool-calling latency across the four candidates, single samples
  * against an identical prompt:
  *
- *   openai/gpt-oss-20b          775ms     <- workhorse
- *   z-ai/glm-5.3                14.0s     <- fallback for harder decisions
+ *   openai/gpt-oss-20b          775ms
+ *   z-ai/glm-5.3                14.0s     <- default
  *   z-ai/glm-5.3-flash          42.1s
  *   moonshotai/kimi-k3          120.4s
  *
- * All four emitted a correct tool call. At ~15-20 calls per discovery run the
- * spread is decisive, so speed picked the default rather than capability.
+ * All four emitted a correct tool call on that prompt, and speed originally
+ * picked the fastest. Running real goals against both changed the answer.
+ *
+ * On a short lookup the two are equivalent. On a longer goal - sign in, find a
+ * member, post a fee to one of their accounts, read back two values -
+ * gpt-oss-20b took 18 recorded steps across 23 model calls, wandering into the
+ * account register and back, and baked a mangled account number into the
+ * artifact as a literal. glm-5.3 did the same goal in 10 steps and 13 calls,
+ * with intents a reviewer can read. The slower model is cheaper overall once
+ * the wasted steps and the review they cost are counted, and the artifact it
+ * produces is the thing that has to last.
  */
+
+/**
+ * The default model, in one place.
+ *
+ * It was previously repeated as a literal in four call sites, which is three
+ * more opportunities than necessary for them to disagree.
+ */
+export const DEFAULT_MODEL = "z-ai/glm-5.3";
 
 export type ChatMessage =
   | { role: "system" | "user"; content: string }

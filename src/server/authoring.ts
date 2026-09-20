@@ -8,6 +8,8 @@ import {
   type DiscoverOptions,
   type ConfirmRequest,
 } from "../agent/loop.js";
+import { DEFAULT_MODEL } from "../agent/llm.js";
+import { modelApiKey } from "../core/secrets.js";
 
 /**
  * Authoring: running discovery on demand, and editing what it produced.
@@ -165,9 +167,12 @@ export function startDiscovery(
   secrets: Record<string, string>,
   hooks: DiscoveryHooks = {},
 ): { job: DiscoveryJob } | { error: string } {
-  const apiKey = process.env.NVIDIA_API_KEY;
+  const apiKey = modelApiKey();
   if (!apiKey)
-    return { error: "NVIDIA_API_KEY is not configured on the server" };
+    return {
+      error:
+        "no model API key is configured on the server (set NVIDIA_API_KEY, or seal one with `npm run seal-key`)",
+    };
 
   if (!/^[a-z][a-z0-9_.]*$/.test(input.capabilityId)) {
     return {
@@ -234,7 +239,7 @@ export function startDiscovery(
         ]),
     ),
     secrets,
-    model: input.model ?? process.env.DEX_MODEL ?? "openai/gpt-oss-20b",
+    model: input.model ?? process.env.DEX_MODEL ?? DEFAULT_MODEL,
     apiKey,
     baseUrl: process.env.NVIDIA_BASE_URL,
     maxSteps: input.maxSteps ?? 25,
@@ -258,7 +263,7 @@ export function startDiscovery(
         lastAction: p.lastAction,
         deadline: p.deadline,
       }),
-    timeoutMs: Number(process.env.DEX_DISCOVERY_TIMEOUT_MS ?? 5 * 60_000),
+    timeoutMs: Number(process.env.DEX_DISCOVERY_TIMEOUT_MS ?? 10 * 60_000),
     perMinute: Number(process.env.DEX_RATE_LIMIT_PER_MIN ?? 49),
     minSpacingMs: Number(process.env.DEX_MIN_REQUEST_SPACING_MS ?? 1300),
     evidenceDir: process.env.DEX_EVIDENCE_DIR ?? "evidence",

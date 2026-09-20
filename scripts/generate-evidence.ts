@@ -55,6 +55,8 @@ await resetTargetLedger();
 
 const catalog = new Catalog("artifacts").load();
 const baseline = catalog.find("cu.member.read_savings_balance")!.capability;
+/** The capability with irreversible steps, used for the escalation case. */
+const posting = catalog.find("cu.member.post_maintenance_fee")?.capability;
 
 /**
  * Preserve the discovery run, delete the rest.
@@ -96,6 +98,13 @@ type Case = {
   expect: string;
   /** Replay the same artifact against a different institution's install. */
   tenant?: string;
+  /**
+   * Answer the escalations this run raises, recording each one.
+   *
+   * Present only for the handoff case. Everything else must complete with no
+   * human at all, and an escalation there would be a finding, not a fixture.
+   */
+  operator?: "approve";
 };
 const cases: Case[] = [
   {
@@ -150,17 +159,47 @@ const cases: Case[] = [
     expect: "success",
     tenant: "summit",
   },
+  // Escalation and handoff. This capability moves money, so both its
+  // irreversible steps stop and ask every single time - approval is not a
+  // one-off gate the run passes and forgets.
+  ...(posting
+    ? [
+        {
+          dir: "09-replay-escalated-handoff",
+          label: "irreversible step pauses for a human, who approves",
+          cap: posting,
+          inputs: {
+            memberId: "100001",
+            accountNumber: "0001-100001-S0",
+            amount: "0.99",
+          },
+          expect: "success",
+          operator: "approve" as const,
+        },
+      ]
+    : []),
 ];
 
 const rows: string[] = [];
 for (const c of cases) {
   rmSync(`${EV}/${c.dir}`, { recursive: true, force: true });
+  const escalations: string[] = [];
   const r = await replay(c.cap, {
-    mode: "replay_unattended",
+    // An escalating run is attended by definition: something is waiting to be
+    // asked. Declaring it unattended would be a different test.
+    mode: c.operator ? "replay_attended" : "replay_unattended",
     inputs: c.inputs,
     secrets,
     evidenceDir: EV,
     ...(c.tenant ? { tenant: c.tenant } : {}),
+    ...(c.operator
+      ? {
+          onEscalation: async (ctx) => {
+            escalations.push(`${ctx.step.id} (${ctx.step.riskClass})`);
+            return { action: "resume" as const };
+          },
+        }
+      : {}),
   });
   // The logger names the directory by runId; rename to something a reviewer can read.
   const produced = readdirSync(EV)
@@ -177,10 +216,13 @@ for (const c of cases) {
           ? r.failure.code
           : "";
   const ok = r.status === c.expect ? "ok" : `UNEXPECTED (wanted ${c.expect})`;
+  const note = escalations.length
+    ? ` — paused at ${escalations.join(", ")}`
+    : "";
   rows.push(
-    `| \`${c.dir}\` | ${c.label} | \`${r.status}\` | ${detail} | ${ok} |`,
+    `| \`${c.dir}\` | ${c.label} | \`${r.status}\` | ${detail}${note} | ${ok} |`,
   );
-  console.log(`${c.dir.padEnd(34)} ${r.status.padEnd(8)} ${detail}`);
+  console.log(`${c.dir.padEnd(34)} ${r.status.padEnd(8)} ${detail}${note}`);
 }
 
 writeFileSync(
@@ -207,10 +249,22 @@ in any file here.
 ${rows.join("\n")}
 
 \`01-discovery-llm-run\` is a genuine LLM-driven run against the live target app
-(NVIDIA NIM, \`openai/gpt-oss-20b\`). It produced
+(NVIDIA NIM). It produced
 \`artifacts/cu.member.lookup_savings@1.0.0.json\` — note its \`status: "draft"\` and empty
 outcome table, which is the point made in REPORT.md §7: one happy-path run cannot know
 what the error states look like.
+
+\`09-replay-escalated-handoff\` is requirement 3.6 end to end. The capability it
+replays posts a fee, so two of its steps are classified irreversible and the policy
+requires confirmation at that level. The run does not fail and does not proceed: it
+parks on a live session, the operator answers, and it resumes on the same session with
+cookies and position intact. Grep the log for \`escalation_raised\` and
+\`control_transferred\` — the lease change is recorded in the same stream as the
+automation's own actions, which is what would let a handoff become a proposed amendment
+to the capability rather than an escalation that repeats forever.
+
+Note that this happens on **every** replay, not only the first. An irreversible step is
+not a gate the capability passes once.
 
 ## The distinction that matters
 

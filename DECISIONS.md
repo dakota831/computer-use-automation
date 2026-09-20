@@ -38,7 +38,7 @@ Newest entries are at the bottom of the file; this index groups them by subject.
 [D7](#d7--measured-against-the-real-target-app-not-assumed) measured against the real target app, not assumed · [D13](#d13--two-silent-patch-failures-and-what-they-cost) two silent patch failures, and what they cost · [D27](#d27--the-evidence-generator-deleted-the-evidence-it-was-meant-to-protect) the evidence generator deleted the evidence it was meant to protect
 
 **Also**  
-[D37](#d37--documentation-is-checked-not-proofread) documentation is checked, not proofread · [D38](#d38--reportmd-was-twice-the-length-the-brief-asked-for) report.md was twice the length the brief asked for · [D39](#d39--making-template-references-hard-to-get-wrong) making template references hard to get wrong · [D40](#d40--authoring-rewritten-for-the-person-who-actually-does-it) authoring, rewritten for the person who actually does it · [D41](#d41--a-timeout-that-was-only-ever-a-report) a timeout that was only ever a report · [D42](#d42--the-build-and-the-deploy-were-two-steps-and-they-drifted) the build and the deploy were two steps, and they drifted · [D43](#d43--giving-the-application-something-worth-guarding) giving the application something worth guarding · [D44](#d44--the-gate-was-guarding-the-doorway-not-the-transaction) the gate was guarding the doorway, not the transaction · [D45](#d45--discovery-can-now-ask-because-somebody-is-there-to-answer) discovery can now ask, because somebody is there to answer · [D46](#d46--a-literal-that-is-really-a-mangled-parameter) a literal that is really a mangled parameter · [D47](#d47--two-callers-two-answers-one-of-them-by-luck) two callers, two answers, one of them by luck · [D48](#d48--two-bugs-the-new-write-action-exposed-in-the-recorder) two bugs the new write action exposed in the recorder · [D49](#d49--what-the-mobile-sweep-is-entitled-to-assert) what the mobile sweep is entitled to assert
+[D37](#d37--documentation-is-checked-not-proofread) documentation is checked, not proofread · [D38](#d38--reportmd-was-twice-the-length-the-brief-asked-for) report.md was twice the length the brief asked for · [D39](#d39--making-template-references-hard-to-get-wrong) making template references hard to get wrong · [D40](#d40--authoring-rewritten-for-the-person-who-actually-does-it) authoring, rewritten for the person who actually does it · [D41](#d41--a-timeout-that-was-only-ever-a-report) a timeout that was only ever a report · [D42](#d42--the-build-and-the-deploy-were-two-steps-and-they-drifted) the build and the deploy were two steps, and they drifted · [D43](#d43--giving-the-application-something-worth-guarding) giving the application something worth guarding · [D44](#d44--the-gate-was-guarding-the-doorway-not-the-transaction) the gate was guarding the doorway, not the transaction · [D45](#d45--discovery-can-now-ask-because-somebody-is-there-to-answer) discovery can now ask, because somebody is there to answer · [D46](#d46--a-literal-that-is-really-a-mangled-parameter) a literal that is really a mangled parameter · [D47](#d47--two-callers-two-answers-one-of-them-by-luck) two callers, two answers, one of them by luck · [D48](#d48--two-bugs-the-new-write-action-exposed-in-the-recorder) two bugs the new write action exposed in the recorder · [D49](#d49--what-the-mobile-sweep-is-entitled-to-assert) what the mobile sweep is entitled to assert · [D50](#d50--glm-53-as-the-default-and-why-latency-was-the-wrong-measure) glm-5.3 as the default, and why latency was the wrong measure · [D51](#d51--you-cannot-hash-an-api-key) you cannot hash an api key
 
 ---
 
@@ -1056,3 +1056,64 @@ The overflow rule is now scoped to pages rather than panels, with the measuremen
 recorded at the waiver so the next person can see it was a decision and not an oversight.
 Console errors and screenshots still apply to the panels, which is what those entries are
 for.
+
+## D50 — glm-5.3 as the default, and why latency was the wrong measure
+
+The default model was chosen on a single measurement: tool-calling latency against an
+identical prompt, where `gpt-oss-20b` answered in 775ms and `glm-5.3` in 14 seconds. All
+four candidates emitted a correct call, so speed decided.
+
+Running real goals against both showed what that measurement missed. On a short lookup
+they are equivalent. On a longer goal — sign in, find a member, post a fee to one of their
+accounts, read back two values — `gpt-oss-20b` took 18 recorded steps across 23 model
+calls, wandered into the account register and back twice, and left a mangled account
+number in the artifact as a literal. `glm-5.3` did the same goal in 10 steps and 13 calls,
+with step intents a reviewer can actually read.
+
+Wall-clock was roughly a wash. The difference that matters is not the clock: discovery runs
+once and the artifact it leaves is replayed indefinitely, so the thing to optimise is the
+quality of that artifact, not the minutes spent producing it. Eight wasted steps are eight
+steps a human has to read and delete before approving.
+
+`glm-5.3` is now the default, in one exported constant rather than the four separate
+string literals it had been — three more chances than necessary for them to disagree. The
+wall-clock budget went from five minutes to ten with it, because a budget is only
+meaningful relative to the model it has to accommodate.
+
+## D51 — You cannot hash an API key
+
+The request was to hash the key so it could not be stolen. It cannot be done, and saying
+so is more useful than shipping something that looks like it was: a hash is one-way, and
+NVIDIA needs the actual bytes to authenticate. Anything this process can send, this
+process can read.
+
+What is achievable is narrower, and each part is worth stating separately because they
+defend against different things:
+
+- **Committed to a public repo.** The real risk, and the unrecoverable one. `.gitignore`
+  was already there; `npm run secret-scan` now runs in `npm run check` and as a pre-commit
+  hook, scanning what git actually tracks. It confirmed the live key had never been
+  committed — only a deliberately fake test fixture had.
+- **Read out of the process or its logs.** The key is registered with the redactor at
+  startup, so it is masked on the write path, and it never enters the model context.
+- **Copied off the host.** Now handled. The key is encrypted with a key derived from
+  `/etc/machine-id`, so the sealed file is inert on any other machine. Removing it from
+  `.env` also took it out of the service's `EnvironmentFile`, and therefore out of
+  `/proc/<pid>/environ`, which was a real leak: any process able to stat that file could
+  read the key without touching the disk.
+- **Local compromise.** Not handled, and not handleable. Anyone who can execute as the
+  service user can decrypt it, because the service must be able to. Sealing raises the cost
+  of exfiltrating a file; it is not a vault.
+
+Sealing is therefore a seam, not an answer. `src/core/secrets.ts` resolves the key from an
+environment variable first and the sealed file second, which is exactly where a KMS client
+or systemd `LoadCredential` slots in — the latter wanting systemd 250, where this host has 249.
+
+Two bugs in writing it, both caught by verifying rather than assuming. `require` is not
+defined in an ES module, so the lazy import in the sealing path threw; the laziness bought
+nothing and the import moved to the top. And the format magic was `dexseal.v1` while the
+field separator was also `.`, so `split` produced six fields and the version check compared
+against `"dexseal"`. A delimiter that can appear in the payload is not a delimiter.
+
+The key that has been in a chat transcript is still compromised regardless of any of this,
+and rotating it is the only thing that fixes that.

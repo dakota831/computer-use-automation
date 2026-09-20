@@ -1,0 +1,7 @@
+#!/bin/sh
+# Refuse a commit that would put a live credential in the repository.
+#
+# The push is the unrecoverable step: once a key reaches a public remote it has
+# to be rotated, and no amount of rewriting history undoes that. This is cheap
+# and runs on every commit for that reason.
+exec node scripts/secret-scan.mjs

@@ -22,6 +22,7 @@ import { replay, type EscalationDecision } from "../replay/executor.js";
 import { WebSurface } from "../surface/web.js";
 import { isRemoteControllable } from "../surface/types.js";
 import { redactor } from "../core/redact.js";
+import { modelApiKey } from "../core/secrets.js";
 
 /**
  * The agent-facing API and the operator console's backend.
@@ -179,7 +180,7 @@ app.get("/api/runs/:id/screenshots/:name", (req, res) => {
 app.get("/api/discovery", (_req, res) => {
   res.json({
     allowedOrigins: discoveryOrigins(),
-    configured: Boolean(process.env.NVIDIA_API_KEY),
+    configured: Boolean(modelApiKey()),
     targets: discoveryTargets(),
     jobs: listJobs(),
   });

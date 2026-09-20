@@ -55,7 +55,11 @@ for (const doc of DOCS) {
   // DECISIONS.md is a historical log: it legitimately names scripts that were
   // removed. Commands are only checked where a reader would type them.
   if (doc !== "DECISIONS.md") {
-    for (const m of text.matchAll(/npm run ([a-z:]+)/g)) {
+    // Hyphens are part of a script name. Without them "npm run seal-key"
+    // parsed as "npm run seal" and this check reported a script that the
+    // docs never mentioned - a checker producing false alarms gets ignored,
+    // which costs more than the check was worth.
+    for (const m of text.matchAll(/npm run ([a-z][a-z0-9:-]*)/g)) {
       if (!scripts.includes(m[1]))
         bad(`${doc}: "npm run ${m[1]}" is not a script`);
     }

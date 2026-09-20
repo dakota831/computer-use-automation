@@ -35,6 +35,7 @@ Every row is something you can click or run. Credentials are `admin` / `admin` t
 | **3.4** | **Risky / irreversible actions**                                                                                                          | Classified at _record_ time and reviewable before approval, so replay can only ever run steps already vetted. A committing control inherits the consequence of the screen it commits — judging by the control's own label alone gated the link into a posting form and waved through the `Confirm` that moved the money. Steps at or above `confirmAtOrAbove` stop and ask a human every time; during console-driven discovery that pause is a real intervention the operator resolves, and the time they take is credited back to the run's budget. | [`policy.ts`](src/core/policy.ts) `classifyActionRisk`                                                                                        | **[Capability detail](https://console.dexdash.cloud/capabilities/cu.member.open_subaccount@1.0.0)** → _Invoke_ (pauses at `s9_confirm`)                          |
 | **3.4** | **Never persist secrets or PII**                                                                                                          | Redaction runs on the **write path** inside the logger, so a call site that forgets is still safe. Two mechanisms: registered values and structural patterns (SSN, Luhn-checked cards, API keys). Screenshots mask sensitive fields at capture time. The model never sees a credential — it emits `{{secret:…}}` and the executor substitutes at typing time.                                                                                                                                                                                        | [`src/core/redact.ts`](src/core/redact.ts) · [`log.ts`](src/core/log.ts) · [`template.ts`](src/core/template.ts)                              | `grep -r "demo-teller-pw" evidence/` → nothing                                                                                                                   |
 | **3.5** | **Evidence / observability**                                                                                                              | Structured JSONL per run: every action, policy verdict, locator resolution _with the strategy index actually used_, checkpoint and outcome. Screenshots and accessibility snapshots on failure.                                                                                                                                                                                                                                                                                                                                                      | [`src/core/log.ts`](src/core/log.ts) · [`src/server/runs.ts`](src/server/runs.ts)                                                             | **[/runs](https://console.dexdash.cloud/runs)** — press `n` to jump between notable events · [`evidence/`](evidence/)                                            |
+| **3.6** | **Escalation during _discovery_**                                                                                                         | A confirmation raised while teaching is an ordinary intervention on the same registry and the same live session, so an irreversible action can be _learned_ under supervision rather than being unlearnable. The operator's thinking time is credited back to the run's budget. The CLI keeps the unattended refusal.                                                                                                                                                                                                                                | [`loop.ts`](src/agent/loop.ts) `onConfirm` · [`interventions.ts`](src/server/interventions.ts)                                                | **[Teach new](https://console.dexdash.cloud/capabilities/new)** — teach a fee posting and watch it park                                                          |
 | **3.6** | **Detect stuck and route it**                                                                                                             | Not heuristic: the union of a `confirm` policy verdict, an escalate-disposition outcome, and exhausted recovery. The request carries capability, step, reason, live URL and a screenshot.                                                                                                                                                                                                                                                                                                                                                            | [`src/server/interventions.ts`](src/server/interventions.ts)                                                                                  | **[/interventions](https://console.dexdash.cloud/interventions)**                                                                                                |
 | **3.6** | **Take control of the live session**, then hand back                                                                                      | A control lease with one holder. Automation **parks** rather than dying — the pause is an un-awaited promise, so the browser context, cookies and position survive. The operator drives the same session over CDP `Page.startScreencast` + `Input.dispatch*`, through the same input path the automation uses.                                                                                                                                                                                                                                       | [`src/server/lease.ts`](src/server/lease.ts) · [`index.ts`](src/server/index.ts) · [`SessionView.tsx`](web/src/console/pages/SessionView.tsx) | `npx tsx scripts/demo-handoff.ts` — includes the server **refusing** operator input before control is taken                                                      |
 | **3.7** | **Surface abstraction** (design)                                                                                                          | Nothing above `src/surface/types.ts` imports Playwright or CDP. `SurfaceNode` is role/name/value — the same model UIA and AX expose. Remote control is a separate `RemoteControllable` capability, so a surface that cannot be screencast degrades honestly.                                                                                                                                                                                                                                                                                         | [`src/surface/types.ts`](src/surface/types.ts)                                                                                                | REPORT §4                                                                                                                                                        |
@@ -86,7 +87,8 @@ More in [`docs/screenshots/`](docs/screenshots/) — regenerate with `node scrip
 ```bash
 npm install
 npx playwright install chromium
-cp .env.example .env     # add NVIDIA_API_KEY for discovery only
+cp .env.example .env     # discovery needs a model key; replay needs none
+npm run seal-key         # paste the key on stdin — sealed to this machine, never in the repo
 ```
 
 **Node 22+.** An NVIDIA NIM API key is needed _only_ for discovery. Replay never calls a
@@ -125,12 +127,13 @@ npx tsx scripts/demo-handoff.ts
 ```
 
 ```bash
-npm test             # 127 unit tests
+npm test             # 132 unit tests
 npm run typecheck
 npm run evidence     # regenerate /evidence/
 npm run visual       # screenshot + console-error + overflow sweep, 50 combinations
 npm run interaction  # drives the console like an operator, 47 checks
 npm run deploy:web   # build + publish to the directory nginx serves
+npm run secret-scan  # refuse to ship a credential; also a pre-commit hook
 ```
 
 ### Teaching and reviewing capabilities
@@ -214,16 +217,17 @@ adapter would implement.
 
 ## Configuration
 
-| Variable                                                | Purpose                                                    |
-| ------------------------------------------------------- | ---------------------------------------------------------- |
-| `NVIDIA_API_KEY`                                        | discovery only; replay needs no key                        |
-| `DEX_MODEL`                                             | default `openai/gpt-oss-20b`                               |
-| `DEX_RATE_LIMIT_PER_MIN` · `DEX_MIN_REQUEST_SPACING_MS` | provider rate limiting, enforced inside the client         |
-| `DEX_DISCOVERY_ALLOWED_ORIGINS`                         | where console-initiated discovery may be aimed             |
-| `DEX_ESCALATION_TIMEOUT_MS`                             | how long an unanswered escalation holds a session          |
-| `DEX_DISCOVERY_TIMEOUT_MS`                              | wall-clock budget for one discovery run                    |
-| `DEX_TARGET_PORT` · `DEX_OPERATOR_PORT`                 | default 8080 / 4000                                        |
-| `DEX_TELLER_USER` · `DEX_TELLER_PASS`                   | target-app credentials, resolved at act time, never logged |
+| Variable                                                | Purpose                                                       |
+| ------------------------------------------------------- | ------------------------------------------------------------- |
+| `NVIDIA_API_KEY`                                        | discovery only; replay needs no key. Overrides the sealed key |
+| `DEX_SEALED_KEY_FILE`                                   | sealed key path (default `secrets/nvidia-api-key.sealed`)     |
+| `DEX_MODEL`                                             | default `z-ai/glm-5.3`                                        |
+| `DEX_RATE_LIMIT_PER_MIN` · `DEX_MIN_REQUEST_SPACING_MS` | provider rate limiting, enforced inside the client            |
+| `DEX_DISCOVERY_ALLOWED_ORIGINS`                         | where console-initiated discovery may be aimed                |
+| `DEX_ESCALATION_TIMEOUT_MS`                             | how long an unanswered escalation holds a session             |
+| `DEX_DISCOVERY_TIMEOUT_MS`                              | wall-clock budget for one discovery run (default 10 min)      |
+| `DEX_TARGET_PORT` · `DEX_OPERATOR_PORT`                 | default 8080 / 4000                                           |
+| `DEX_TELLER_USER` · `DEX_TELLER_PASS`                   | target-app credentials, resolved at act time, never logged    |
 
 Secrets are referenced in artifacts as `{{secret:corelink.password}}` and substituted at
 the moment of typing. The model never sees a credential and no artifact contains one.

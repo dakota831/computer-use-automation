@@ -13,3 +13,6 @@ node_modules/
 # Ad-hoc runs. The curated set is 01-..08-, produced by npm run evidence.
 evidence/replay-20*/
 evidence/discovery-20*/
+
+# Sealed credentials. Machine-bound, but still never committed.
+secrets/

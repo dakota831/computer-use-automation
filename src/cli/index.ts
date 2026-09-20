@@ -7,6 +7,8 @@ import { Capability } from "../core/artifact.js";
 import { redactor } from "../core/redact.js";
 import { replay } from "../replay/executor.js";
 import { discover } from "../agent/loop.js";
+import { DEFAULT_MODEL } from "../agent/llm.js";
+import { modelApiKey } from "../core/secrets.js";
 import { Catalog } from "../server/catalog.js";
 
 /**
@@ -100,8 +102,11 @@ switch (cmd) {
         tenant: { type: "string" },
       },
     });
-    const apiKey = process.env.NVIDIA_API_KEY;
-    if (!apiKey) throw new Error("NVIDIA_API_KEY is not set; see .env.example");
+    const apiKey = modelApiKey();
+    if (!apiKey)
+      throw new Error(
+        "no model API key: set NVIDIA_API_KEY, or seal one with `npm run seal-key`. See .env.example",
+      );
 
     const app = process.env.DEX_APP_BASE ?? "http://127.0.0.1:8080";
     const tenant = values.tenant ?? "firstcu";
@@ -134,7 +139,7 @@ switch (cmd) {
         },
       },
       secrets: SECRETS,
-      model: values.model ?? process.env.DEX_MODEL ?? "openai/gpt-oss-20b",
+      model: values.model ?? process.env.DEX_MODEL ?? DEFAULT_MODEL,
       apiKey,
       baseUrl: process.env.NVIDIA_BASE_URL,
       perMinute: Number(process.env.DEX_RATE_LIMIT_PER_MIN ?? 49),

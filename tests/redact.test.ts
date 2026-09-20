@@ -31,6 +31,7 @@ describe("Redactor", () => {
 
   it("redacts API keys of the shapes this project actually handles", () => {
     const r = new Redactor();
+    // secret-scan-allow: a fabricated key, present to prove redaction fires.
     expect(r.text("NVIDIA_API_KEY=nvapi-AbCd1234EfGh5678")).toContain(
       "[redacted:api_key]",
     );

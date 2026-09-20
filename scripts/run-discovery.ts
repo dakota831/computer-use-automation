@@ -3,6 +3,8 @@ import { config as loadEnv } from "dotenv";
 loadEnv({ quiet: true });
 import { writeFileSync, mkdirSync } from "node:fs";
 import { discover } from "../src/agent/loop.js";
+import { DEFAULT_MODEL } from "../src/agent/llm.js";
+import { modelApiKey } from "../src/core/secrets.js";
 
 /**
  * One genuine LLM-driven discovery run against the live target app.
@@ -13,8 +15,11 @@ const APP = process.env.DEX_APP_BASE ?? "http://127.0.0.1:8080";
 const TENANT = process.env.DEX_TENANT ?? "firstcu";
 const MEMBER_ID = process.env.DEX_MEMBER_ID ?? "100001";
 
-const apiKey = process.env.NVIDIA_API_KEY;
-if (!apiKey) throw new Error("NVIDIA_API_KEY is not set (see .env.example)");
+const apiKey = modelApiKey();
+if (!apiKey)
+  throw new Error(
+    "no model API key: set NVIDIA_API_KEY, or seal one with `npm run seal-key` (see .env.example)",
+  );
 
 const result = await discover({
   goal: `Sign in to the teller console, look up the member whose ID is {{memberId}}, open their record, and read two values from it: their savings balance and their name.`,
@@ -43,7 +48,7 @@ const result = await discover({
     "corelink.username": process.env.DEX_TELLER_USER ?? "admin",
     "corelink.password": process.env.DEX_TELLER_PASS ?? "admin",
   },
-  model: process.env.DEX_MODEL ?? "openai/gpt-oss-20b",
+  model: process.env.DEX_MODEL ?? DEFAULT_MODEL,
   apiKey,
   baseUrl: process.env.NVIDIA_BASE_URL,
   maxSteps: Number(process.env.DEX_MAX_STEPS ?? 22),

@@ -148,7 +148,7 @@ export async function discover(opts: DiscoverOptions): Promise<DiscoverResult> {
   const maxSteps = opts.maxSteps ?? 22;
   const timeoutMs =
     opts.timeoutMs ??
-    Number(process.env.DEX_DISCOVERY_TIMEOUT_MS ?? 5 * 60_000);
+    Number(process.env.DEX_DISCOVERY_TIMEOUT_MS ?? 10 * 60_000);
   /**
    * The agent's wall-clock budget, as an absolute time that can move.
    *
