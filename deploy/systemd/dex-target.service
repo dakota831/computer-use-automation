@@ -1,0 +1,17 @@
+[Unit]
+Description=Project Dex - synthetic CoreLink Teller target app
+After=network.target
+
+[Service]
+Type=simple
+User=dexdash
+WorkingDirectory=/home/dexdash/projects/dex
+Environment=DEX_TARGET_PORT=8080
+ExecStart=/home/dexdash/projects/dex/node_modules/.bin/tsx target-app/server.ts
+Restart=on-failure
+RestartSec=5s
+StandardOutput=append:/home/dexdash/projects/dex/target-app.log
+StandardError=append:/home/dexdash/projects/dex/target-app.log
+
+[Install]
+WantedBy=multi-user.target
