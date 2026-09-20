@@ -40,12 +40,12 @@ console.log(`intervention ${iv.id} on ${iv.stepId}`);
 const b = await chromium.launch();
 const page = await b.newPage({ viewport: { width: 1280, height: 900 } });
 
-await page.goto(`${API}/#/`, { waitUntil: "networkidle" });
+await page.goto(`${API}/`, { waitUntil: "networkidle" });
 await sleep(1200);
 await page.screenshot({ path: "/tmp/console-queue.png" });
 console.log("captured: interventions queue");
 
-await page.goto(`${API}/#/session/${iv.id}`, { waitUntil: "networkidle" });
+await page.goto(`${API}/session/${iv.id}`, { waitUntil: "networkidle" });
 await sleep(3500); // let screencast frames arrive
 await page.screenshot({ path: "/tmp/console-viewing.png" });
 console.log("captured: live session, automation in control");

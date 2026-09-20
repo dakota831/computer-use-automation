@@ -368,3 +368,20 @@ Fixed at the primitive level — `Card`, `TableWrap` and `Field` can all shrink 
 than per page, so new pages inherit the fix. The sweep in `scripts/visual-check.mjs`
 asserts on it directly (`scrollWidth > innerWidth`) at both widths, alongside console
 errors and failed requests, so it cannot regress silently.
+
+## D24 — An escalation nobody answers needs a bounded outcome
+
+Found by leaving an intervention open during testing: the invoke request hung forever and
+a live browser session stayed pinned. The escalation promise had no timeout, so "waiting
+for a human" was indistinguishable from "wedged".
+
+An unanswered escalation is a real operational state — the operator went home, the alert
+was missed — so it now resolves to `abandon` after a bounded wait
+(`DEX_ESCALATION_TIMEOUT_MS`, default 15 minutes), returns the lease so the parked run
+unblocks, and records that it was closed by the system rather than by a person. The timer
+is `unref`d so it cannot keep the process alive on its own, and it is cleared the moment
+a human resolves the intervention.
+
+`tests/handoff.test.ts` covers the whole control-transfer model, including that automation
+genuinely parks and resumes, that approving a step is distinguishable from performing it,
+and both halves of the timeout (it fires when ignored; it is cancelled when answered).

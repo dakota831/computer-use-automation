@@ -50,6 +50,10 @@ export type Intervention = {
   surface: Surface;
   log?: RunLogger;
   resolve: (d: EscalationDecision) => void;
+  /** Auto-abandon timer; cleared the moment a human resolves the intervention. */
+  timer?: NodeJS.Timeout;
+  /** Set when the intervention was closed by the timeout rather than a person. */
+  timedOut?: boolean;
 };
 
 /** What the console sees. Deliberately excludes the live surface handle. */
@@ -66,7 +70,7 @@ export class InterventionRegistry {
   private readonly items = new Map<string, Intervention>();
 
   view(i: Intervention): InterventionView {
-    const { lease, surface, resolve, log, ...rest } = i;
+    const { lease, surface, resolve, log, timer, ...rest } = i;
     return {
       ...rest,
       owner: lease.owner,
@@ -98,6 +102,15 @@ export class InterventionRegistry {
     lease: ControlLease;
     log?: RunLogger;
     version: string;
+    /**
+     * How long to wait for a human before giving up.
+     *
+     * Without this a run that escalates and is never answered holds a live
+     * browser session forever — found by leaving one open during testing. An
+     * unanswered escalation is a real operational state, so it gets an explicit
+     * bounded outcome rather than an indefinite wait.
+     */
+    timeoutMs?: number;
   }): { intervention: Intervention; decided: Promise<EscalationDecision> } {
     const id = `iv_${randomUUID().slice(0, 8)}`;
     let resolve!: (d: EscalationDecision) => void;
@@ -122,6 +135,20 @@ export class InterventionRegistry {
       log: args.log,
       resolve,
     };
+
+    const timeoutMs =
+      args.timeoutMs ??
+      Number(process.env.DEX_ESCALATION_TIMEOUT_MS ?? 15 * 60_000);
+    intervention.timer = setTimeout(() => {
+      if (intervention.status === "resolved") return;
+      intervention.timedOut = true;
+      this.release(id, "system", {
+        action: "abandon",
+        note: `no operator responded within ${Math.round(timeoutMs / 1000)}s`,
+      });
+    }, timeoutMs);
+    // Do not hold the process open purely to wait for an operator.
+    intervention.timer.unref?.();
 
     this.items.set(id, intervention);
     args.log?.event("escalation_raised", {
@@ -164,6 +191,7 @@ export class InterventionRegistry {
   ): InterventionView {
     const i = this.require(id);
     const note = "note" in decision ? decision.note : "resuming automation";
+    if (i.timer) clearTimeout(i.timer);
     const ev = i.lease.returnToAutomation(actor, note);
     i.status = "resolved";
     i.log?.event("control_transferred", {
