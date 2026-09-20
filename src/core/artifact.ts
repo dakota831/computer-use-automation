@@ -281,9 +281,6 @@ export const Capability = z.object({
 });
 export type Capability = z.infer<typeof Capability>;
 
-export const parseCapability = (raw: unknown): Capability =>
-  Capability.parse(raw);
-
 /**
  * Apply a tenant override to a base capability.
  *

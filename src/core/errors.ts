@@ -116,13 +116,6 @@ export type BusinessOutcome = {
   data?: Record<string, unknown>;
 };
 
-/** What a single step produced. */
-export type StepResult =
-  | { kind: "ok" }
-  | { kind: "business_outcome"; outcome: BusinessOutcome }
-  | { kind: "recovered"; via: string; attempts: number }
-  | { kind: "failed"; failure: ReplayFailure };
-
 /**
  * What a whole replay produced. This is the contract a calling agent programs
  * against, so the four arms are exhaustive and mutually exclusive.
@@ -165,11 +158,6 @@ export type ReplayResult =
       durationMs: number;
       evidence: EvidenceRefs;
     };
-
-/** Narrowing helper so callers do not stringly-type the discriminant. */
-export const isSuccess = (
-  r: ReplayResult,
-): r is Extract<ReplayResult, { status: "success" }> => r.status === "success";
 
 /**
  * Raised during discovery, not replay. Kept separate because the discovery loop
