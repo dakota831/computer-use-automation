@@ -1,4 +1,6 @@
-import "dotenv/config";
+import { config as loadEnv } from "dotenv";
+// quiet: this CLI writes JSON to stdout, and a dotenv banner makes it unparseable.
+loadEnv({ quiet: true });
 import WebSocket from "ws";
 
 /**
