@@ -125,7 +125,7 @@ npx tsx scripts/demo-handoff.ts
 ```
 
 ```bash
-npm test             # 92 unit tests
+npm test             # 95 unit tests
 npm run typecheck
 npm run evidence     # regenerate /evidence/
 npm run visual       # screenshot + console-error + overflow sweep, 50 combinations

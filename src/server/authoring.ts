@@ -29,6 +29,45 @@ export const discoveryOrigins = (): string[] =>
     .map((s) => s.trim())
     .filter(Boolean);
 
+export type DiscoveryTarget = { id: string; label: string; entryPoint: string };
+
+/**
+ * The applications discovery may be aimed at, as a closed list.
+ *
+ * An operator picks an institution by name; they never type a URL. That is
+ * friendlier, and it is a tighter control than the origin allowlist — the entry
+ * point can only ever be one of these exact values, so there is no traversal or
+ * open-redirect surface to reason about.
+ */
+export function discoveryTargets(): DiscoveryTarget[] {
+  const raw = process.env.DEX_DISCOVERY_TARGETS;
+  if (raw) {
+    try {
+      const parsed = JSON.parse(raw) as DiscoveryTarget[];
+      if (
+        Array.isArray(parsed) &&
+        parsed.every((t) => t.id && t.label && t.entryPoint)
+      )
+        return parsed;
+    } catch {
+      /* fall through to the default rather than starting with no targets */
+    }
+  }
+  const base = process.env.DEX_APP_BASE ?? "http://127.0.0.1:8080";
+  return [
+    {
+      id: "firstcu",
+      label: "First Community Credit Union",
+      entryPoint: `${base}/t/firstcu`,
+    },
+    {
+      id: "summit",
+      label: "Summit Savings Federal Credit Union",
+      entryPoint: `${base}/t/summit`,
+    },
+  ];
+}
+
 export type JobStatus = "running" | "succeeded" | "failed";
 
 export type DiscoveryJob = {
@@ -63,10 +102,11 @@ export type StartDiscoveryInput = {
   title: string;
   description: string;
   vendorApp?: string;
-  /** Single illustrative parameter; the recorder templatises it out of the run. */
-  paramName?: string;
-  paramValue?: string;
-  paramDescription?: string;
+  /**
+   * Illustrative values for each `{{name}}` the goal references. The recorder
+   * templatises them back out, so they shape the run without being baked in.
+   */
+  parameters?: { name: string; value: string; description?: string }[];
   model?: string;
   maxSteps?: number;
 };
@@ -84,6 +124,12 @@ export function startDiscovery(
       error:
         "capabilityId must be lowercase dotted identifier, e.g. cu.member.lookup",
     };
+  }
+  // Must be one of the offered applications exactly, and still satisfy the
+  // origin allowlist. The first is the real control; the second is defence in
+  // depth against a badly configured target list.
+  if (!discoveryTargets().some((t) => t.entryPoint === input.entryPoint)) {
+    return { error: "entry point is not one of the configured applications" };
   }
   if (!discoveryOrigins().some((o) => urlMatchesEntry(input.entryPoint, o))) {
     return {
@@ -114,27 +160,31 @@ export function startDiscovery(
     tenant: "base",
     // Scope the agent to the entry point's own path, not the whole origin.
     allowedOrigins: [`${origin}${path}/*`],
-    parameters: input.paramName
-      ? {
-          [input.paramName]: {
-            value: input.paramValue ?? "",
+    parameters: Object.fromEntries(
+      (input.parameters ?? [])
+        .filter((p) => p.name.trim())
+        .map((p) => [
+          p.name.trim(),
+          {
+            value: p.value ?? "",
             spec: {
-              type: "string",
+              type: "string" as const,
               required: true,
               description:
-                input.paramDescription ??
-                `${input.paramName} supplied per invocation.`,
-              sensitivity: "pii",
-              example: input.paramValue ?? "",
+                p.description ?? `${p.name.trim()} supplied per invocation.`,
+              // Anything an operator supplies about a member is PII unless
+              // someone deliberately says otherwise during review.
+              sensitivity: "pii" as const,
+              example: p.value ?? "",
             },
           },
-        }
-      : {},
+        ]),
+    ),
     secrets,
     model: input.model ?? process.env.DEX_MODEL ?? "openai/gpt-oss-20b",
     apiKey,
     baseUrl: process.env.NVIDIA_BASE_URL,
-    maxSteps: input.maxSteps ?? 22,
+    maxSteps: input.maxSteps ?? 25,
     timeoutMs: Number(process.env.DEX_DISCOVERY_TIMEOUT_MS ?? 5 * 60_000),
     perMinute: Number(process.env.DEX_RATE_LIMIT_PER_MIN ?? 49),
     minSpacingMs: Number(process.env.DEX_MIN_REQUEST_SPACING_MS ?? 1300),

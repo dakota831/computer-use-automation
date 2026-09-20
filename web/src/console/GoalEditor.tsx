@@ -20,32 +20,57 @@ export const GOAL_PREFIX = "Sign in to the teller console, ";
 export type TemplateRef = {
   token: string;
   label: string;
-  kind: "parameter" | "secret";
   hint: string;
+  /** True when this name is only a suggestion, not yet used in the goal. */
+  suggested?: boolean;
 };
 
-/** Everything the recorder can substitute, given the current form state. */
-export function buildReferences(
-  paramName: string,
-  secretKeys: string[],
-): TemplateRef[] {
-  const refs: TemplateRef[] = [];
-  const p = paramName.trim();
-  if (p) {
-    refs.push({
-      token: `{{${p}}}`,
-      label: p,
-      kind: "parameter",
-      hint: "run parameter — the caller supplies this per invocation",
-    });
+/**
+ * Names an operator is likely to want, offered before they have used any.
+ *
+ * Purely a starting point — typing `{{anything}}` creates that value, so this
+ * is discoverability rather than a fixed vocabulary.
+ */
+export const SUGGESTED_PARAMS = [
+  "memberId",
+  "accountNumber",
+  "amount",
+  "nickname",
+] as const;
+
+/** Every `{{name}}` the goal currently references, in order, without duplicates. */
+export function parseParameters(goal: string): string[] {
+  const out: string[] = [];
+  for (const m of goal.matchAll(/\{\{\s*([A-Za-z][\w]*)\s*\}\}/g)) {
+    const name = m[1]!;
+    if (!out.includes(name)) out.push(name);
   }
-  for (const k of secretKeys) {
-    refs.push({
-      token: `{{secret:${k}}}`,
-      label: `secret:${k}`,
-      kind: "secret",
-      hint: "resolved at typing time; the model never sees the value",
-    });
+  return out;
+}
+
+/**
+ * What the editor offers: the values already in use, then a few suggestions.
+ *
+ * Credentials are deliberately absent. Signing in is a fixed part of every
+ * goal and the executor supplies the credentials itself, so an operator has no
+ * reason to see or handle a `{{secret:…}}` reference — and every reason not to.
+ */
+export function buildReferences(goal: string): TemplateRef[] {
+  const used = parseParameters(goal);
+  const refs: TemplateRef[] = used.map((name) => ({
+    token: `{{${name}}}`,
+    label: name,
+    hint: "the caller supplies this each time the capability runs",
+  }));
+  for (const name of SUGGESTED_PARAMS) {
+    if (!used.includes(name)) {
+      refs.push({
+        token: `{{${name}}}`,
+        label: name,
+        hint: "suggested — using it creates this value",
+        suggested: true,
+      });
+    }
   }
   return refs;
 }
@@ -250,11 +275,11 @@ export function GoalEditor({
 
       <div>
         <p className="label-caps mb-1 text-ink-faint">
-          References — click to insert, or drag into the goal
+          Values the caller supplies — click to insert, or drag into the goal
         </p>
         {references.length === 0 ? (
           <p className="text-xs text-ink-faint">
-            Name a parameter below and it will appear here as a reference.
+            Type <Mono>{"{{"}</Mono> followed by a name to create one.
           </p>
         ) : (
           <ul className="flex flex-wrap gap-1.5">
@@ -273,8 +298,9 @@ export function GoalEditor({
                   title={r.hint}
                   className={clsx(
                     "press rule inline-flex cursor-grab items-center gap-1 px-1.5 py-1 font-mono text-[0.6875rem] shadow-hard-sm active:cursor-grabbing",
-                    r.kind === "secret"
-                      ? "border-danger bg-danger-pale text-danger"
+                    // In use reads as established; a suggestion reads as on offer.
+                    r.suggested
+                      ? "bg-paper-sunk text-ink-dim"
                       : "bg-blue-pale text-blue",
                   )}
                 >

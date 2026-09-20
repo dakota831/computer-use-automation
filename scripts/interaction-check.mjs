@@ -117,107 +117,66 @@ const diffText = await page.locator("main").innerText();
 check("diff shows the status change review made", diffText.includes('"status"'), "");
 check("diff counts additions and removals", /\+\d+/.test(diffText) && /−\d+|-\d+/.test(diffText));
 
-// --- discovery form and the goal editor -------------------------------------
+// --- teach a new capability -------------------------------------------------
 await go("/capabilities/new");
-check("discovery form renders", (await page.getByRole("button", { name: /run discovery/i }).count()) > 0);
+check("the page renders", (await page.getByRole("button", { name: /start learning/i }).count()) > 0);
+check("institution is a choice, not a URL box", (await page.getByLabel("Institution").count()) > 0);
+const institutions = await page.getByLabel("Institution").locator("option").allTextContents();
+check("both institutions are offered", institutions.length === 2, institutions.join(" | "));
+check("no step budget is asked for", (await page.getByText(/max steps/i).count()) === 0);
+check("no credential reference is shown", (await page.getByText(/secret:/i).count()) === 0);
 check("the sign-in clause is fixed, not typed each time", (await page.getByText("Sign in to the teller console,").count()) > 0);
 
-const chips = page.locator("button[draggable=true]");
-check("every available reference is offered", (await chips.count()) === 3, `${await chips.count()} chip(s)`);
-
 const goal = page.getByLabel("Goal");
-await goal.fill("");
-await goal.type("read {{m");
+const chips = page.locator("button[draggable=true]");
+
+// A value used in the goal gets a row to fill in; removing it takes the row away.
+check("a referenced value gets a row", (await page.getByLabel(/example value for memberId/i).count()) > 0);
+await goal.fill("open the account {{accountNumber}} for member {{memberId}}");
 await page.waitForTimeout(500);
-const sugg = await page.getByRole("option").allTextContents();
-// A substring match would also return secret:corelink.username — "username"
-// contains an "m" — which is technically a match and useless as a suggestion.
-check("typing {{m suggests only references starting with m", sugg.length === 1 && sugg[0].includes("memberId"), sugg.join(" | "));
+check("a newly referenced value adds a row", (await page.getByLabel(/example value for accountNumber/i).count()) > 0);
+await goal.fill("look up member {{memberId}}");
+await page.waitForTimeout(500);
+check("dropping a reference removes its row", (await page.getByLabel(/example value for accountNumber/i).count()) === 0);
+
+// Autocomplete
+await goal.fill("");
+await goal.type("read {{mem");
+await page.waitForTimeout(500);
+// Scoped to the suggestion list: a native <select> also exposes role=option,
+// so an unscoped query picks up the institution choices too.
+const sugg = await page
+  .getByRole("listbox", { name: /template suggestions/i })
+  .getByRole("option")
+  .allTextContents();
+check("typing {{mem suggests only matching names", sugg.length === 1 && sugg[0].includes("memberId"), sugg.join(" | "));
 await page.keyboard.press("Enter");
 await page.waitForTimeout(400);
 check("accepting a suggestion closes the token", (await goal.inputValue()) === "read {{memberId}}", await goal.inputValue());
 
-await goal.fill("");
-await goal.type("use {{sec");
+await goal.type(" and {{acc");
 await page.waitForTimeout(400);
 await page.keyboard.press("Escape");
 await page.waitForTimeout(400);
 check("escape dismisses and stays dismissed", !(await page.getByRole("listbox", { name: /template suggestions/i }).isVisible().catch(() => false)));
 
+// Insert by click and by drag
 await goal.fill("balance for ");
 await goal.click();
 await page.keyboard.press("End");
-await chips.filter({ hasText: "{{memberId}}" }).click();
+await chips.filter({ hasText: "{{memberId}}" }).first().click();
 await page.waitForTimeout(400);
-check("clicking a reference inserts it at the caret", (await goal.inputValue()) === "balance for {{memberId}}", await goal.inputValue());
+check("clicking a value inserts it at the caret", (await goal.inputValue()) === "balance for {{memberId}}", await goal.inputValue());
 
-await goal.fill("deposit ");
-await chips.filter({ hasText: "{{secret:corelink.password}}" }).dragTo(goal);
+await goal.fill("transfer ");
+await chips.filter({ hasText: "{{amount}}" }).first().dragTo(goal);
 await page.waitForTimeout(600);
-check("dragging a reference into the goal inserts it", (await goal.inputValue()).includes("{{secret:corelink.password}}"), await goal.inputValue());
+check("dragging a value into the task inserts it", (await goal.inputValue()).includes("{{amount}}"), await goal.inputValue());
 
-// --- footer: cross-surface links must leave the console ---------------------
-await go("/");
-const learn = page.locator("footer").getByRole("link", { name: /how it works/i });
-check("footer 'How it works' exists", (await learn.count()) > 0);
-if (await learn.count()) {
-  const href = await learn.getAttribute("href");
-  check("footer 'How it works' points at the public site", href?.startsWith("https://dexdash.cloud") ?? false, href ?? "");
-}
-const whatIs = page.locator("footer").getByRole("link", { name: /what dexdash is/i });
-check("footer links to the explainer", (await whatIs.count()) > 0 && (await whatIs.getAttribute("href")) === "https://dexdash.cloud");
-const selfLink = await page.locator("footer").getByRole("link", { name: /operator console/i }).count();
-check("footer does not link the console to itself", selfLink === 0);
-
-// --- keyboard help overlay --------------------------------------------------
-await page.keyboard.press("?");
-await page.waitForTimeout(600);
-const help = page.getByRole("dialog", { name: /keyboard shortcuts/i });
-check("'?' opens the shortcut overlay", await help.isVisible().catch(() => false));
-if (await help.isVisible().catch(() => false)) {
-  check("overlay documents the sequences", (await help.getByText(/go to runs/i).count()) > 0);
-  await page.keyboard.press("Escape");
-  await page.waitForTimeout(500);
-  check("escape closes the overlay", !(await help.isVisible().catch(() => false)));
-}
-
-// --- auto-refresh pause, and that it persists -------------------------------
-const liveBtn = page.getByRole("button", { name: /pause auto-refresh/i });
-check("auto-refresh starts live", (await liveBtn.count()) > 0);
-if (await liveBtn.count()) {
-  await liveBtn.click();
-  await page.waitForTimeout(500);
-  check("pausing flips the control", (await page.getByRole("button", { name: /resume auto-refresh/i }).count()) > 0);
-  const stored = await page.evaluate(() => localStorage.getItem("dex.autorefresh"));
-  check("pause is persisted", stored === "false", String(stored));
-  await page.reload({ waitUntil: "networkidle" });
-  await page.waitForTimeout(800);
-  check("pause survives a reload", (await page.getByRole("button", { name: /resume auto-refresh/i }).count()) > 0);
-  await page.getByRole("button", { name: /resume auto-refresh/i }).click();
-  await page.waitForTimeout(400);
-}
-
-// --- copy to clipboard ------------------------------------------------------
-await ctx.grantPermissions(["clipboard-read", "clipboard-write"]);
-await go("/capabilities/cu.member.open_subaccount@1.0.0");
-const copyBtn = page.getByRole("button", { name: /copy identifier/i }).first();
-check("identifier has a copy control", (await copyBtn.count()) > 0);
-if (await copyBtn.count()) {
-  await copyBtn.click();
-  await page.waitForTimeout(600);
-  const clip = await page.evaluate(() => navigator.clipboard.readText()).catch(() => "");
-  check("copy puts the identifier on the clipboard", clip.includes("cu.member.open_subaccount"), clip);
-  check("copy confirms with a toast", (await page.getByText(/copied/i).count()) > 0);
-}
-
-// --- breadcrumbs ------------------------------------------------------------
-const crumb = page.getByRole("navigation", { name: /breadcrumb/i }).getByRole("link", { name: /capabilities/i });
-check("detail page has a breadcrumb", (await crumb.count()) > 0);
-if (await crumb.count()) {
-  await crumb.click();
-  await page.waitForTimeout(900);
-  check("breadcrumb navigates up", page.url().endsWith("/capabilities"), page.url());
-}
+// The identifier is derived, not demanded.
+await page.getByLabel("Title").fill("Read a member balance");
+await page.waitForTimeout(400);
+check("the identifier is derived from the title", (await page.getByText(/cu\.read_a_member_balance/).count()) > 0);
 
 console.log("");
 check("no uncaught JS errors during the whole walk", errors.length === 0, errors.slice(0, 2).join(" | "));

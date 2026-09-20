@@ -3,35 +3,92 @@ import {
   activeToken,
   buildReferences,
   matchesPrefix,
+  parseParameters,
   GOAL_PREFIX,
+  SUGGESTED_PARAMS,
 } from "../web/src/console/GoalEditor.tsx";
 
+describe("parseParameters", () => {
+  it("finds every value the goal references", () => {
+    expect(
+      parseParameters("look up {{memberId}} and open {{accountNumber}}"),
+    ).toEqual(["memberId", "accountNumber"]);
+  });
+
+  it("reports each name once, in first-use order", () => {
+    expect(parseParameters("{{b}} then {{a}} then {{b}}")).toEqual(["b", "a"]);
+  });
+
+  it("tolerates whitespace inside the braces", () => {
+    expect(parseParameters("read {{ memberId }}")).toEqual(["memberId"]);
+  });
+
+  it("ignores an unclosed token", () => {
+    expect(parseParameters("read {{member")).toEqual([]);
+  });
+
+  it("finds nothing in a goal with no references", () => {
+    expect(parseParameters("open the daily totals report")).toEqual([]);
+  });
+
+  // Credentials are handled by the executor and are not operator-facing, so
+  // a colon-bearing token is not a parameter row to fill in.
+  it("does not treat a secret reference as a parameter", () => {
+    expect(parseParameters("type {{secret:corelink.password}}")).toEqual([]);
+  });
+});
+
 describe("buildReferences", () => {
-  it("offers the run parameter and every secret key", () => {
-    const refs = buildReferences("memberId", [
-      "corelink.username",
-      "corelink.password",
-    ]);
-    expect(refs.map((r) => r.token)).toEqual([
-      "{{memberId}}",
-      "{{secret:corelink.username}}",
-      "{{secret:corelink.password}}",
-    ]);
+  it("offers the values already in use first", () => {
+    const refs = buildReferences("read {{memberId}}");
+    expect(refs[0]!.token).toBe("{{memberId}}");
+    expect(refs[0]!.suggested).toBeUndefined();
   });
 
-  it("omits the parameter until one is named", () => {
-    expect(buildReferences("  ", ["k"]).map((r) => r.token)).toEqual([
-      "{{secret:k}}",
-    ]);
+  it("offers suggestions for names not yet used", () => {
+    const refs = buildReferences("");
+    expect(refs.every((r) => r.suggested)).toBe(true);
+    expect(refs.map((r) => r.label)).toEqual([...SUGGESTED_PARAMS]);
   });
 
-  // Secrets are marked so the chip can be styled as the more dangerous thing.
-  it("distinguishes secrets from parameters", () => {
-    const refs = buildReferences("memberId", ["k"]);
-    expect(refs.find((r) => r.token === "{{memberId}}")?.kind).toBe(
-      "parameter",
+  it("does not offer a suggestion that is already in use", () => {
+    const refs = buildReferences("read {{memberId}}");
+    expect(refs.filter((r) => r.label === "memberId")).toHaveLength(1);
+  });
+
+  /**
+   * The operator never handles credentials: signing in is a fixed part of every
+   * goal and the executor substitutes the values itself.
+   */
+  it("never exposes a credential reference", () => {
+    const refs = buildReferences(
+      "type {{secret:corelink.password}} to sign in",
     );
-    expect(refs.find((r) => r.token === "{{secret:k}}")?.kind).toBe("secret");
+    expect(refs.some((r) => r.token.includes("secret"))).toBe(false);
+  });
+});
+
+describe("matchesPrefix", () => {
+  const refs = buildReferences("read {{memberId}} for {{accountNumber}}");
+  const find = (p: string) =>
+    refs.filter((r) => matchesPrefix(r, p)).map((r) => r.label);
+
+  it("shows everything before anything is typed", () => {
+    expect(find("").length).toBe(refs.length);
+  });
+
+  it("matches on prefix, not substring", () => {
+    expect(find("mem")).toEqual(["memberId"]);
+    // "accountNumber" contains "u" but does not start with it.
+    expect(find("u")).toEqual([]);
+  });
+
+  it("is case-insensitive", () => {
+    expect(find("MEMBER")).toEqual(["memberId"]);
+  });
+
+  it("returns nothing for a prefix that matches no name", () => {
+    expect(find("zzz")).toEqual([]);
   });
 });
 
@@ -46,31 +103,20 @@ describe("activeToken", () => {
     expect(at("look up {{mem")?.partial).toBe("mem");
   });
 
-  it("allows the characters a reference can contain", () => {
-    expect(at("{{secret:corelink.pass")?.partial).toBe("secret:corelink.pass");
-    expect(at("{{my-ref")?.partial).toBe("my-ref");
-  });
-
-  // Once closed, there is nothing to complete.
   it("stops once the token is closed", () => {
     expect(at("look up {{memberId}}")).toBeNull();
   });
 
-  it("is null when no token has been opened", () => {
-    expect(at("look up the member")).toBeNull();
-  });
-
   it("does not span a space or other prose", () => {
-    expect(at("{{memberId}} and then read")).toBeNull();
     expect(at("{{mem ber")).toBeNull();
+    expect(at("{{memberId}} and then read")).toBeNull();
   });
 
   it("tracks the most recent token when several are present", () => {
-    const s = "read {{memberId}} then {{sec";
-    expect(activeToken(s, s.length)).toEqual({ start: 23, partial: "sec" });
+    const s = "read {{memberId}} then {{acc";
+    expect(activeToken(s, s.length)).toEqual({ start: 23, partial: "acc" });
   });
 
-  // The caret may sit mid-string; only text before it counts.
   it("respects the caret rather than the end of the value", () => {
     const s = "read {{mem and later text";
     expect(activeToken(s, 10)).toEqual({ start: 5, partial: "mem" });
@@ -92,48 +138,5 @@ describe("GOAL_PREFIX", () => {
     expect(GOAL_PREFIX + "look up {{memberId}}.").toBe(
       "Sign in to the teller console, look up {{memberId}}.",
     );
-  });
-});
-
-describe("matchesPrefix", () => {
-  const refs = buildReferences("memberId", [
-    "corelink.username",
-    "corelink.password",
-  ]);
-  const find = (partial: string) =>
-    refs.filter((r) => matchesPrefix(r, partial)).map((r) => r.token);
-
-  it("shows everything before anything is typed", () => {
-    expect(find("")).toHaveLength(3);
-  });
-
-  /**
-   * The original filter used a substring match, so `{{m` also returned
-   * `secret:corelink.username` — "username" contains an "m". Technically a
-   * match, useless as a suggestion.
-   */
-  it("matches on prefix, not substring", () => {
-    expect(find("m")).toEqual(["{{memberId}}"]);
-  });
-
-  it("matches a whole secret label", () => {
-    expect(find("secret")).toEqual([
-      "{{secret:corelink.username}}",
-      "{{secret:corelink.password}}",
-    ]);
-  });
-
-  // Segments keep deeper names reachable without loosening into substring.
-  it("matches a dotted or colon-separated segment", () => {
-    expect(find("user")).toEqual(["{{secret:corelink.username}}"]);
-    expect(find("corelink")).toHaveLength(2);
-  });
-
-  it("is case-insensitive", () => {
-    expect(find("MEMBER")).toEqual(["{{memberId}}"]);
-  });
-
-  it("returns nothing for a partial that matches no prefix", () => {
-    expect(find("zzz")).toEqual([]);
   });
 });

@@ -234,11 +234,13 @@ export type DiscoveryJob = {
   error?: string;
 };
 
+export type DiscoveryTarget = { id: string; label: string; entryPoint: string };
+
 export type DiscoveryInfo = {
   allowedOrigins: string[];
   configured: boolean;
-  /** Names only — values never leave the server. */
-  secretKeys: string[];
+  /** The applications discovery may be aimed at. A closed list, not a URL box. */
+  targets: DiscoveryTarget[];
   jobs: DiscoveryJob[];
 };
 

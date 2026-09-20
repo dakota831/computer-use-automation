@@ -14,6 +14,7 @@ import {
   getJob,
   saveCapability,
   discoveryOrigins,
+  discoveryTargets,
 } from "./authoring.js";
 import { ControlLease } from "./lease.js";
 import { replay, type EscalationDecision } from "../replay/executor.js";
@@ -171,10 +172,7 @@ app.get("/api/discovery", (_req, res) => {
   res.json({
     allowedOrigins: discoveryOrigins(),
     configured: Boolean(process.env.NVIDIA_API_KEY),
-    // Key NAMES only. The console needs them to offer `{{secret:...}}`
-    // references; the values never leave the server, and the model only ever
-    // sees the reference either.
-    secretKeys: Object.keys(SECRETS),
+    targets: discoveryTargets(),
     jobs: listJobs(),
   });
 });
@@ -193,9 +191,7 @@ app.post("/api/discovery", (req, res) => {
       title: b.title,
       description: b.description ?? b.title,
       vendorApp: b.vendorApp,
-      paramName: b.paramName,
-      paramValue: b.paramValue,
-      paramDescription: b.paramDescription,
+      parameters: Array.isArray(b.parameters) ? b.parameters : [],
       model: b.model,
       maxSteps: b.maxSteps ? Number(b.maxSteps) : undefined,
     },
