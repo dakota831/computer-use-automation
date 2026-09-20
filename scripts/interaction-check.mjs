@@ -121,6 +121,69 @@ check("diff counts additions and removals", /\+\d+/.test(diffText) && /−\d+|-\
 await go("/capabilities/new");
 check("discovery form renders", (await page.getByRole("button", { name: /run discovery/i }).count()) > 0);
 
+// --- footer: cross-surface links must leave the console ---------------------
+await go("/");
+const learn = page.locator("footer").getByRole("link", { name: /how it works/i });
+check("footer 'How it works' exists", (await learn.count()) > 0);
+if (await learn.count()) {
+  const href = await learn.getAttribute("href");
+  check("footer 'How it works' points at the public site", href?.startsWith("https://dexdash.cloud") ?? false, href ?? "");
+}
+const whatIs = page.locator("footer").getByRole("link", { name: /what dexdash is/i });
+check("footer links to the explainer", (await whatIs.count()) > 0 && (await whatIs.getAttribute("href")) === "https://dexdash.cloud");
+const selfLink = await page.locator("footer").getByRole("link", { name: /operator console/i }).count();
+check("footer does not link the console to itself", selfLink === 0);
+
+// --- keyboard help overlay --------------------------------------------------
+await page.keyboard.press("?");
+await page.waitForTimeout(600);
+const help = page.getByRole("dialog", { name: /keyboard shortcuts/i });
+check("'?' opens the shortcut overlay", await help.isVisible().catch(() => false));
+if (await help.isVisible().catch(() => false)) {
+  check("overlay documents the sequences", (await help.getByText(/go to runs/i).count()) > 0);
+  await page.keyboard.press("Escape");
+  await page.waitForTimeout(500);
+  check("escape closes the overlay", !(await help.isVisible().catch(() => false)));
+}
+
+// --- auto-refresh pause, and that it persists -------------------------------
+const liveBtn = page.getByRole("button", { name: /pause auto-refresh/i });
+check("auto-refresh starts live", (await liveBtn.count()) > 0);
+if (await liveBtn.count()) {
+  await liveBtn.click();
+  await page.waitForTimeout(500);
+  check("pausing flips the control", (await page.getByRole("button", { name: /resume auto-refresh/i }).count()) > 0);
+  const stored = await page.evaluate(() => localStorage.getItem("dex.autorefresh"));
+  check("pause is persisted", stored === "false", String(stored));
+  await page.reload({ waitUntil: "networkidle" });
+  await page.waitForTimeout(800);
+  check("pause survives a reload", (await page.getByRole("button", { name: /resume auto-refresh/i }).count()) > 0);
+  await page.getByRole("button", { name: /resume auto-refresh/i }).click();
+  await page.waitForTimeout(400);
+}
+
+// --- copy to clipboard ------------------------------------------------------
+await ctx.grantPermissions(["clipboard-read", "clipboard-write"]);
+await go("/capabilities/cu.member.open_subaccount@1.0.0");
+const copyBtn = page.getByRole("button", { name: /copy identifier/i }).first();
+check("identifier has a copy control", (await copyBtn.count()) > 0);
+if (await copyBtn.count()) {
+  await copyBtn.click();
+  await page.waitForTimeout(600);
+  const clip = await page.evaluate(() => navigator.clipboard.readText()).catch(() => "");
+  check("copy puts the identifier on the clipboard", clip.includes("cu.member.open_subaccount"), clip);
+  check("copy confirms with a toast", (await page.getByText(/copied/i).count()) > 0);
+}
+
+// --- breadcrumbs ------------------------------------------------------------
+const crumb = page.getByRole("navigation", { name: /breadcrumb/i }).getByRole("link", { name: /capabilities/i });
+check("detail page has a breadcrumb", (await crumb.count()) > 0);
+if (await crumb.count()) {
+  await crumb.click();
+  await page.waitForTimeout(900);
+  check("breadcrumb navigates up", page.url().endsWith("/capabilities"), page.url());
+}
+
 console.log("");
 check("no uncaught JS errors during the whole walk", errors.length === 0, errors.slice(0, 2).join(" | "));
 

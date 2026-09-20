@@ -179,6 +179,7 @@ export default function App() {
       </main>
 
       <Footer
+        current="console"
         note={
           <button
             onClick={() => setHelpOpen(true)}

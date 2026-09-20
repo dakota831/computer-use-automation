@@ -281,6 +281,7 @@ export default function Site() {
       </main>
 
       <Footer
+        current="site"
         note={
           <span>
             Build: demo environment · <Mono>synthetic</Mono>

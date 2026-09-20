@@ -168,7 +168,33 @@ export function Header({
   );
 }
 
-export function Footer({ note }: { note?: ReactNode }) {
+/**
+ * Cross-surface links.
+ *
+ * Absolute on purpose: this footer is shared between the public site and the
+ * console, which are different origins. Relative hrefs looked correct on the
+ * site and silently pointed at console pages once the same footer rendered
+ * there — "How it works" landed on the console's own overview instead of the
+ * explainer.
+ */
+export const SURFACES = {
+  site: "https://dexdash.cloud",
+  teller: "https://teller.dexdash.cloud",
+  console: "https://console.dexdash.cloud",
+  api: "https://api.dexdash.cloud/api/capabilities",
+  repo: "https://github.com/dakota831/computer-use-automation",
+} as const;
+
+export type SurfaceName = "site" | "console";
+
+export function Footer({
+  note,
+  current,
+}: {
+  note?: ReactNode;
+  /** Which surface is rendering this, so its own entry is not offered as a link. */
+  current?: SurfaceName;
+}) {
   return (
     <footer className="rule-t mt-10 bg-paper-sunk">
       <div className="mx-auto flex max-w-7xl flex-col gap-4 px-3 py-6 sm:px-5 md:flex-row md:items-start md:justify-between">
@@ -187,33 +213,30 @@ export function Footer({ note }: { note?: ReactNode }) {
           <FooterCol
             title="Interfaces"
             links={[
-              { label: "Teller app", href: "https://teller.dexdash.cloud" },
+              { label: "Teller app", href: SURFACES.teller },
               {
                 label: "Operator console",
-                href: "https://console.dexdash.cloud",
+                href: SURFACES.console,
+                here: current === "console",
               },
-              {
-                label: "Capability API",
-                href: "https://api.dexdash.cloud/api/capabilities",
-              },
+              { label: "Capability API", href: SURFACES.api },
             ]}
           />
           <FooterCol
-            title="Reference"
+            title="Learn"
             links={[
-              { label: "Overview", href: "/" },
-              { label: "How it works", href: "/#how" },
-              { label: "Safety model", href: "/#safety" },
+              {
+                label: "What DexDash is",
+                href: SURFACES.site,
+                here: current === "site",
+              },
+              { label: "How it works", href: `${SURFACES.site}/#how` },
+              { label: "Safety model", href: `${SURFACES.site}/#safety` },
             ]}
           />
           <FooterCol
             title="Source"
-            links={[
-              {
-                label: "Repository",
-                href: "https://github.com/dakota831/computer-use-automation",
-              },
-            ]}
+            links={[{ label: "Repository", href: SURFACES.repo }]}
           />
         </div>
       </div>
@@ -237,7 +260,7 @@ function FooterCol({
   links,
 }: {
   title: string;
-  links: { label: string; href: string }[];
+  links: { label: string; href: string; here?: boolean }[];
 }) {
   return (
     <div>
@@ -245,12 +268,19 @@ function FooterCol({
       <ul className="flex flex-col gap-1">
         {links.map((l) => (
           <li key={l.href}>
-            <a
-              href={l.href}
-              className="text-ink-dim underline-offset-2 hover:text-blue hover:underline"
-            >
-              {l.label}
-            </a>
+            {l.here ? (
+              // Already here; a link back to the current surface is noise.
+              <span className="text-ink-faint" aria-current="page">
+                {l.label}
+              </span>
+            ) : (
+              <a
+                href={l.href}
+                className="text-ink-dim underline-offset-2 hover:text-blue hover:underline"
+              >
+                {l.label}
+              </a>
+            )}
           </li>
         ))}
       </ul>

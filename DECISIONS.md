@@ -635,3 +635,34 @@ a 1ms budget stops the run, a normal one still completes.
 including hotkeys, the command palette, filters, the approval toggle, schema rejection on
 a bad edit, anomaly jump and the diff. The visual sweep proves pages render; this proves
 their controls do something.
+
+## D35 — A shared footer with relative links pointed at the wrong site
+
+The footer is rendered by both the public site and the console, which are different
+origins. Its "Reference" column used relative hrefs — `/`, `/#how`, `/#safety`. Correct on
+the site; on the console they resolved to console routes, so "How it works" landed on the
+operator overview instead of the explainer, and "Overview" collided with the console's own
+nav item of the same name.
+
+Cross-surface links are now absolute and centralised in a `SURFACES` constant, the column
+is titled "Learn", and the footer takes a `current` prop so the surface you are already on
+renders as plain text with `aria-current="page"` rather than a link back to itself.
+
+The general shape of this bug: a component shared across origins cannot use relative URLs
+for anything that is not genuinely local, and it fails silently — every link still
+resolves, just to the wrong place.
+
+## D36 — Dead and mis-named npm scripts
+
+`npm run operator` invoked a CLI command that no longer exists; it predates consolidating
+the API and the console into one process, and had been quietly printing usage and exiting
+1 for some time.
+
+Worse, the README told a reader to run `npm run serve` while the script was named
+`server` — a documented command that simply failed. The script is now `serve`, matching
+both the README and the CLI's own `serve` command. Renaming it exposed a third problem:
+`dev` still composed `npm:server`, so `npm run dev` would have broken.
+
+There is now a check that every `npm:` reference inside `dev` resolves to a real script,
+and the whole documented command list is verified to exist. A README command nobody has
+run is a broken command, and the only way to know is to run it.
