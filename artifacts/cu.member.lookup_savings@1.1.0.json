@@ -450,19 +450,7 @@
         "timeoutMs": 10000,
         "describedAs": "the screen reached the state expected after: Click Search"
       },
-      "outcomes": [
-        {
-          "code": "MEMBER_NOT_FOUND",
-          "describedAs": "no member exists with the supplied ID",
-          "detector": {
-            "kind": "text_present",
-            "text": "No member found matching the ID supplied",
-            "match": "normalized"
-          },
-          "disposition": "business_outcome",
-          "maxAttempts": 1
-        }
-      ]
+      "outcomes": []
     }
   ],
   "successCondition": {
@@ -480,7 +468,30 @@
     "timeoutMs": 10000,
     "describedAs": "the screen reached the state expected after: achieve the goal: Sign in to the teller console, look up the member whose ID is {{memberId}}, open their record, and read two values from it: their savings balance and their name."
   },
-  "outcomes": [],
+  "outcomes": [
+    {
+      "code": "MEMBER_NOT_FOUND",
+      "describedAs": "no member exists with the supplied ID",
+      "detector": {
+        "kind": "text_present",
+        "text": "No member found matching the ID supplied",
+        "match": "normalized"
+      },
+      "disposition": "business_outcome",
+      "maxAttempts": 1
+    },
+    {
+      "code": "THIS_TELLER_MAY_NOT_VIEW_THE_RECORD",
+      "describedAs": "this teller may not view the record",
+      "detector": {
+        "kind": "text_present",
+        "text": "do not have permission to view this member record",
+        "match": "normalized"
+      },
+      "disposition": "business_outcome",
+      "maxAttempts": 1
+    }
+  ],
   "policy": {
     "allowedOrigins": [
       "http://127.0.0.1:8080"

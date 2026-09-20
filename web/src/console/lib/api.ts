@@ -59,7 +59,7 @@ export type CapabilitySummary = {
     description: string;
   }[];
   outputs: { name: string; type: string; description: string }[];
-  outcomes: { code: string; disposition: string; describedAs: string }[];
+  outcomes: OutcomeRule[];
 };
 
 async function get<T>(path: string): Promise<T> {
@@ -135,6 +135,21 @@ export type Stats = {
   discoveryRuns: number;
 };
 
+/**
+ * A rule as the document actually stores it.
+ *
+ * The detector matters: the console must round-trip it untouched when an
+ * operator edits a rule's wording, or saving would quietly replace a working
+ * detector with a guess.
+ */
+export type OutcomeRule = {
+  code: string;
+  disposition: string;
+  describedAs: string;
+  detector: Record<string, unknown>;
+  maxAttempts?: number;
+};
+
 /** Full capability document, for the detail view. */
 export type CapabilityDoc = {
   id: string;
@@ -182,10 +197,10 @@ export type CapabilityDoc = {
       };
     };
     checkpoint?: { describedAs: string; all: Record<string, unknown>[] };
-    outcomes: { code: string; disposition: string; describedAs: string }[];
+    outcomes: OutcomeRule[];
   }[];
   successCondition: { describedAs: string; all: Record<string, unknown>[] };
-  outcomes: { code: string; disposition: string; describedAs: string }[];
+  outcomes: OutcomeRule[];
   policy: {
     allowedOrigins: string[];
     allowedActions: string[];

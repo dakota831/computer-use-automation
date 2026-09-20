@@ -38,7 +38,7 @@ Newest entries are at the bottom of the file; this index groups them by subject.
 [D7](#d7--measured-against-the-real-target-app-not-assumed) measured against the real target app, not assumed  ·  [D13](#d13--two-silent-patch-failures-and-what-they-cost) two silent patch failures, and what they cost  ·  [D27](#d27--the-evidence-generator-deleted-the-evidence-it-was-meant-to-protect) the evidence generator deleted the evidence it was meant to protect
 
 **Also**  
-[D37](#d37--documentation-is-checked-not-proofread) documentation is checked, not proofread  ·  [D38](#d38--reportmd-was-twice-the-length-the-brief-asked-for) report.md was twice the length the brief asked for  ·  [D39](#d39--making-template-references-hard-to-get-wrong) making template references hard to get wrong
+[D37](#d37--documentation-is-checked-not-proofread) documentation is checked, not proofread  ·  [D38](#d38--reportmd-was-twice-the-length-the-brief-asked-for) report.md was twice the length the brief asked for  ·  [D39](#d39--making-template-references-hard-to-get-wrong) making template references hard to get wrong  ·  [D40](#d40--authoring-rewritten-for-the-person-who-actually-does-it) authoring, rewritten for the person who actually does it
 
 ---
 
@@ -769,3 +769,40 @@ token actually changes.
 
 Both are the kind of defect that only appears when a real keyboard drives a real browser,
 which is why `scripts/interaction-check.mjs` exists alongside the unit tests.
+
+## D40 — Authoring, rewritten for the person who actually does it
+
+The teach and edit screens were built for someone who already knew the schema. The people
+who will use them do not, and should not have to.
+
+**Teaching.** The institution is a picker, not a URL box — which is also a tighter control
+than the origin allowlist, since the entry point can only be one of a closed list. The
+step budget is gone; it was a safety bound the operator had no basis to set, so the server
+keeps it. Values appear as rows the moment the task references `{{something}}`, and vanish
+when it stops. The identifier is derived from the title, with an override behind
+*Advanced*. Credentials are not shown at all: signing in is a fixed part of every task and
+the executor supplies them, so there is no reason for an operator to see a
+`{{secret:…}}` reference and every reason not to.
+
+**Editing.** The reviewer's job is narrow — confirm the steps say what they expect, and
+write down what should happen when the application does something other than succeed — so
+that is what the screen exposes. Sign-in steps are collapsed to one line, because nobody
+reviews them. Outcomes are asked for as "what happened", "how would you know", "what
+should happen then", with dispositions worded as *Report it as the answer* / *Deal with it
+and carry on* / *Ask a person* / *Stop with an error*. The raw document stays reachable
+behind a disclosure for the rare case that needs it.
+
+**The bug this exposed, which matters more than the UI.** The first version of the editor
+could not round-trip a detector: the console's document type omitted it, so saving replaced
+a tested match with a guess derived from the description. Worse, the schema then rejected
+the document and the save silently failed — my browser check asserted on a toast and
+passed while the file on disk never changed. Only `git status` caught it.
+
+Two lessons. A type that is narrower than the document it represents will lose whatever it
+omits, silently. And a UI test that asserts on a success message rather than on the
+resulting state will confirm a save that did not happen.
+
+Now verified end to end: an operator adds "this teller may not view the record" through the
+form, and `200001` returns `THIS_TELLER_MAY_NOT_VIEW_THE_RECORD` as a business outcome
+instead of `CHECKPOINT_FAILED` — while `MEMBER_NOT_FOUND`'s original detector survives the
+save byte for byte.

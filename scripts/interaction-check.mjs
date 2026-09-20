@@ -86,15 +86,33 @@ check("approval is reversible", (await text()).includes("draft"));
 // --- editor -----------------------------------------------------------------
 await page.getByRole("button", { name: /^edit$/i }).click();
 await page.waitForTimeout(500);
-check("editor opens with the artifact JSON", (await page.getByLabel(/capability json/i).count()) > 0);
+// The raw document now lives behind an Advanced disclosure; the default editor
+// is the visual one, so this has to be opened before the textarea is usable.
+await page.getByText(/advanced — edit the raw document/i).click();
+await page.waitForTimeout(400);
+check("the raw document is reachable for power users", await page.getByLabel(/capability json/i).isVisible());
 const ta = page.getByLabel(/capability json/i);
 const original = await ta.inputValue();
 expectRejection = true;
 await ta.fill(original.replace('"riskClass": "safe"', '"riskClass": "nonsense"'));
-await page.getByRole("button", { name: /^save$/i }).click();
+await page.getByRole("button", { name: /save raw document/i }).click();
 await page.waitForTimeout(1500);
 check("invalid edit is rejected with a schema error", (await page.getByText(/schema error/i).count()) > 0);
 expectRejection = false;
+
+// --- the visual capability editor -------------------------------------------
+await go("/capabilities/cu.member.lookup_savings@1.1.0");
+check("sign-in steps are hidden from the step list", !(await page.locator("main").innerText()).toLowerCase().includes("secret:"));
+await page.getByRole("button", { name: /^edit$/i }).click();
+await page.waitForTimeout(800);
+check("editing is visual, not a JSON box", (await page.getByRole("textbox", { name: /capability title/i }).count()) > 0);
+check("the hidden steps are explained", (await page.getByText(/signs in automatically/i).count()) > 0);
+check("outcomes are asked for in plain language", (await page.getByLabel(/what happened/i).count()) > 0);
+const disp = await page.getByLabel(/what should happen/i).locator("option").allTextContents();
+check("dispositions are worded for people", disp.some((o) => /report it as the answer/i.test(o)), disp.join(" | "));
+check("the raw document is available but not the default", (await page.getByText(/advanced — edit the raw document/i).count()) > 0);
+await page.getByRole("button", { name: /cancel/i }).click();
+await page.waitForTimeout(400);
 
 // --- run timeline + anomaly jump -------------------------------------------
 await go("/runs");

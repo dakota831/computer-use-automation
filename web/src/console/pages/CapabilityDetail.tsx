@@ -28,6 +28,7 @@ import {
 import { CopyButton } from "../../shared/Chrome.tsx";
 import { useToast } from "../../shared/Toast.tsx";
 import { Crumbs, PageHead } from "../App.tsx";
+import { CapabilityEditor, isSignInStep } from "../CapabilityEditor.tsx";
 
 /**
  * Capability detail: the contract, made readable.
@@ -78,6 +79,22 @@ export function CapabilityDetail() {
       await load();
     } catch (e) {
       toast(String(e instanceof Error ? e.message : e), "danger");
+    }
+  };
+
+  /** Save a document the visual editor assembled. */
+  const saveDoc = async (next: CapabilityDoc) => {
+    setSaving(true);
+    setSaveError(null);
+    try {
+      const r = await authoring.save(`${next.id}@${next.version}`, next);
+      toast(`Saved ${r.id}@${r.version}`, "ok");
+      setEditing(false);
+      await load();
+    } catch (e) {
+      setSaveError(String(e instanceof Error ? e.message : e));
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -156,120 +173,118 @@ export function CapabilityDetail() {
       />
 
       {editing && (
-        <Card
-          className="mb-4"
-          title="Edit capability"
-          aside={
-            <Button
-              size="sm"
-              variant="primary"
-              onClick={save}
-              disabled={saving}
-            >
-              <Save className="size-4" /> {saving ? "Saving…" : "Save"}
-            </Button>
-          }
-        >
-          <p className="mb-2 text-xs text-ink-dim">
-            Validated against the same schema the replay engine parses with, so
-            anything saved here is executable. Change <Mono>version</Mono> to
-            write a new artifact instead of overwriting this one.
-          </p>
-          <textarea
-            value={draftJson}
-            onChange={(e) => setDraftJson(e.target.value)}
-            spellCheck={false}
-            rows={26}
-            aria-label="Capability JSON"
-            className="rule w-full min-w-0 bg-paper-sunk p-2 font-mono text-[0.6875rem] leading-relaxed outline-none focus:bg-paper-raised"
+        <div className="mb-4">
+          <CapabilityEditor
+            doc={doc}
+            saving={saving}
+            error={saveError}
+            onSave={(next) => saveDoc(next)}
           />
-          {saveError && (
-            <div className="rule mt-2 border-danger bg-danger-pale p-2 text-xs break-words text-danger">
-              {saveError}
-            </div>
-          )}
-        </Card>
+          <details className="mt-3">
+            <summary className="label-caps cursor-pointer text-ink-faint hover:text-blue">
+              Advanced — edit the raw document
+            </summary>
+            <p className="mt-2 mb-1 text-xs text-ink-dim">
+              Validated against the same schema the replay engine parses with,
+              so anything saved here is executable. Change <Mono>version</Mono>{" "}
+              to write a new capability instead of replacing this one.
+            </p>
+            <textarea
+              value={draftJson}
+              onChange={(e) => setDraftJson(e.target.value)}
+              spellCheck={false}
+              rows={20}
+              aria-label="Capability JSON"
+              className="rule w-full min-w-0 bg-paper-sunk p-2 font-mono text-[0.6875rem] leading-relaxed outline-none focus:bg-paper-raised"
+            />
+            <Button size="sm" className="mt-2" onClick={save} disabled={saving}>
+              <Save className="size-4" /> Save raw document
+            </Button>
+          </details>
+        </div>
       )}
 
       <div className="grid min-w-0 gap-4 lg:grid-cols-[1.4fr_1fr]">
         <div className="flex min-w-0 flex-col gap-4">
           <Card title="Steps">
             <ol className="flex flex-col">
-              {doc.steps.map((s, i) => (
-                <li
-                  key={s.id}
-                  className="border-b border-rule-soft py-3 last:border-0"
-                >
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="font-mono text-xs text-ink-faint">
-                      {String(i + 1).padStart(2, "0")}
-                    </span>
-                    <Mono className="text-blue">{s.id}</Mono>
-                    <Badge
-                      tone={
-                        s.riskClass === "irreversible"
-                          ? "danger"
-                          : s.riskClass === "risky"
-                            ? "warn"
-                            : "neutral"
-                      }
-                    >
-                      {s.riskClass}
-                    </Badge>
-                    <Badge>{s.action.type}</Badge>
-                  </div>
-                  <p className="mt-1.5 text-sm">{s.intent}</p>
-
-                  {s.action.value && (
-                    <p className="mt-1">
-                      <Mono className="text-ink-dim">
-                        value: {s.action.value}
-                      </Mono>
-                    </p>
-                  )}
-
-                  {s.action.target && (
-                    <details className="mt-2">
-                      <summary className="label-caps cursor-pointer text-ink-faint hover:text-blue">
-                        targeting · {s.action.target.strategies.length} ranked
-                        strategies
-                      </summary>
-                      <ol className="mt-1.5 flex flex-col gap-1.5 border-l-2 border-rule-soft pl-3">
-                        {s.action.target.strategies.map((st, n) => (
-                          <li key={n} className="text-xs">
-                            <span className="flex flex-wrap items-center gap-2">
-                              <Badge
-                                tone={
-                                  st.confidence >= 0.85
-                                    ? "ok"
-                                    : st.confidence >= 0.6
-                                      ? "warn"
-                                      : "danger"
-                                }
-                              >
-                                {st.confidence.toFixed(2)}
-                              </Badge>
-                              <Mono>{String((st.strategy as any).kind)}</Mono>
-                            </span>
-                            <p className="mt-0.5 text-ink-dim">
-                              {st.rationale}
-                            </p>
-                          </li>
-                        ))}
-                      </ol>
-                    </details>
-                  )}
-
-                  {s.checkpoint && (
-                    <p className="mt-1.5 text-xs text-ink-dim">
-                      <span className="label-caps text-ink-faint">
-                        checkpoint{" "}
+              {doc.steps
+                .filter((_, i) => !isSignInStep(doc, i))
+                .map((s, i) => (
+                  <li
+                    key={s.id}
+                    className="border-b border-rule-soft py-3 last:border-0"
+                  >
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="font-mono text-xs text-ink-faint">
+                        {String(i + 1).padStart(2, "0")}
                       </span>
-                      {s.checkpoint.describedAs}
-                    </p>
-                  )}
-                </li>
-              ))}
+                      <Mono className="text-blue">{s.id}</Mono>
+                      <Badge
+                        tone={
+                          s.riskClass === "irreversible"
+                            ? "danger"
+                            : s.riskClass === "risky"
+                              ? "warn"
+                              : "neutral"
+                        }
+                      >
+                        {s.riskClass}
+                      </Badge>
+                      <Badge>{s.action.type}</Badge>
+                    </div>
+                    <p className="mt-1.5 text-sm">{s.intent}</p>
+
+                    {s.action.value && (
+                      <p className="mt-1">
+                        <Mono className="text-ink-dim">
+                          value: {s.action.value}
+                        </Mono>
+                      </p>
+                    )}
+
+                    {s.action.target && (
+                      <details className="mt-2">
+                        <summary className="label-caps cursor-pointer text-ink-faint hover:text-blue">
+                          targeting · {s.action.target.strategies.length} ranked
+                          strategies
+                        </summary>
+                        <ol className="mt-1.5 flex flex-col gap-1.5 border-l-2 border-rule-soft pl-3">
+                          {s.action.target.strategies.map((st, n) => (
+                            <li key={n} className="text-xs">
+                              <span className="flex flex-wrap items-center gap-2">
+                                <Badge
+                                  tone={
+                                    st.confidence >= 0.85
+                                      ? "ok"
+                                      : st.confidence >= 0.6
+                                        ? "warn"
+                                        : "danger"
+                                  }
+                                >
+                                  {st.confidence.toFixed(2)}
+                                </Badge>
+                                <Mono>{String((st.strategy as any).kind)}</Mono>
+                              </span>
+                              <p className="mt-0.5 text-ink-dim">
+                                {st.rationale}
+                              </p>
+                            </li>
+                          ))}
+                        </ol>
+                      </details>
+                    )}
+
+                    {s.checkpoint && (
+                      <p className="mt-1.5 text-xs text-ink-dim">
+                        <span className="label-caps text-ink-faint">
+                          checkpoint{" "}
+                        </span>
+                        {s.checkpoint.describedAs}
+                      </p>
+                    )}
+                  </li>
+                ))}
             </ol>
           </Card>
 
