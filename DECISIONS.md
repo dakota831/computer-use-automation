@@ -109,3 +109,44 @@ reproduced without contrivance — it falls out of ordinary table markup with no
 `<label for>`. It means `label_proximity` is not a defensive extra in the locator
 ranking, it is the only strategy that can target the most important controls on the
 page. A system that only did role+name would be unable to log in.
+
+## D8 — Redaction happens on the write path, not at call sites
+
+`RunLogger` passes everything through `Redactor.deep()` before it touches disk.
+The alternative — redact at each call site — fails the moment one call site forgets,
+and forgetting is the expected case across hundreds of log statements.
+
+Two independent mechanisms, because either alone leaks. Registered values catch a
+password echoed back in a form value or an error string, which no pattern would spot.
+Patterns catch regulated data nobody declared, which is most of what a member record
+screen contains. Card detection is Luhn-checked so 16-digit internal reference numbers
+survive: over-redaction destroys the debuggability that evidence exists to provide.
+
+`pii` keeps type and length (`[pii:string:6]`) because that is genuinely useful when
+debugging. `secret` keeps nothing at all — length leaks information about a password.
+
+## D9 — A business outcome is not throwable
+
+`BusinessOutcome` is a plain type, not an `Error` subclass. "No such member" cannot be
+`throw`n, so the most common design mistake in this problem is unrepresentable rather
+than merely discouraged. Escalation is deliberately not a fourth kind of result either:
+it is a *response* to a hard failure or a risky step, which keeps "what happened"
+separate from "what we decided to do about it".
+
+## D10 — Policy is checked before every action, and enforced twice
+
+A plan approved up front says nothing about what the next action will be: during
+discovery the model picks each action freshly, and during replay a page can redirect
+between steps. So `PolicyEngine.check()` runs per action, and non-navigation actions are
+validated against the *current* URL — a session that has drifted off-allowlist cannot
+keep clicking.
+
+The allowlist is a literal-match language (origin, or `/*` prefix), not regex.
+Allowlists are security-relevant and a reviewer has to be able to read one at a glance.
+Tests cover the two ways naive implementations break: `/t/firstcu-evil` must not match
+the `/t/firstcu/*` prefix, and `evil-127.0.0.1` must not match host `127.0.0.1`.
+
+The asymmetry between modes is the real decision. Discovery pauses for a human on a
+risky action because a model chose it and nobody reviewed it. Replay cannot introduce a
+new risky action at all — it executes only recorded, approved steps — so the risk surface
+was fixed and reviewed before it ever ran unattended.
