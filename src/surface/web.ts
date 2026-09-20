@@ -484,8 +484,19 @@ export class WebSurface implements Surface {
     await this.page.keyboard.press(key);
   }
 
+  /**
+   * Navigate and wait for the content to actually be there.
+   *
+   * `domcontentloaded` fires before child frames load, and on a frameset app all
+   * the real content is in a child frame - so observing immediately after
+   * returns an empty screen. That is not a benign race: the agent saw no
+   * controls and correctly gave up on a page that was about to be fine.
+   */
   async navigate(url: string): Promise<void> {
-    await this.page.goto(url, { waitUntil: "domcontentloaded" });
+    await this.page.goto(url, { waitUntil: "load" });
+    await this.page
+      .waitForLoadState("networkidle", { timeout: 5000 })
+      .catch(() => {});
   }
 
   async readText(node: SurfaceNode): Promise<string> {

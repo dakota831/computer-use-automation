@@ -95,6 +95,8 @@ export const RankedStrategy = z.object({
   rationale: z.string(),
 });
 
+export type RankedStrategy = z.infer<typeof RankedStrategy>;
+
 export const TargetDescriptor = z.object({
   /** Human-readable, for review and for error messages: "the Member ID field". */
   describedAs: z.string(),

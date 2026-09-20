@@ -220,3 +220,53 @@ loudly instead of reporting success it has not verified. The parallel to the sys
 being built is not lost on me: an operation that silently does nothing and reports
 success is the exact failure mode the ambiguity policy and the checkpoints exist to
 prevent.
+
+## D14 — The model never sees a credential
+
+The agent is told which secret *keys* exist and emits `{{secret:corelink.password}}`;
+the loop substitutes the value at the moment of typing. So the password is absent from
+the prompt, from the transcript, and from the artifact — not redacted after the fact,
+never present. The same template is what replay resolves later, so one mechanism serves
+discovery and production.
+
+## D15 — A discovered capability is always a draft
+
+The recorder emits `status: "draft"`, never `approved`, and this is a correctness claim
+rather than caution. One successful run proves the happy path. It cannot know what the
+*error* states look like, because it never saw one.
+
+The evidence is direct. The agent's own artifact replays cleanly for member 100001 and
+100003, and on 999999 it returns `CHECKPOINT_FAILED` — technically true, but useless to a
+caller. The hand-authored baseline returns `MEMBER_NOT_FOUND`, because a human wrote the
+outcome table. That gap *is* the review work, and it is exactly what the draft → approved
+gate exists to force. A capability that has never been reviewed cannot run unattended.
+
+## D16 — Two recorder bugs the first real run exposed
+
+Both were found by inspecting the artifact the agent produced, and neither would have
+surfaced from a passing test.
+
+**A secret in a checkpoint.** `deriveCheckpoint` picked "text that appeared" as its
+marker, and after typing the username that text was `teller1`. Two distinct failures in
+one line: a credential written into an artifact destined for source control, and — more
+insidious — a checkpoint containing a run-specific value, which silently turns a reusable
+capability into a single-use script. Nothing errors; the next caller with a different
+member ID just gets an inexplicable `CHECKPOINT_FAILED`. Secrets and parameter values are
+now both excluded from checkpoint text.
+
+**An empty success condition.** Deriving it by diffing the final screen against the one
+immediately before found nothing changed, yielding `all: []` — which `waitForCheckpoint`
+satisfies trivially, so every replay would have reported success while verifying nothing.
+It is now derived against the *first* observation of the run ("what is true at the end
+that was not true at the start"), and an empty result is a hard error: the recorder
+refuses to emit a capability that would claim success without checking anything.
+
+## D17 — Provider quirks belong at the adapter boundary
+
+`openai/gpt-oss-20b` on NIM leaks its Harmony response format into the function name, so
+`click` arrives as `click<|channel|>commentary`. The model was choosing correctly; the
+wire format was noisy. Before normalising this the agent burned all 22 steps retrying.
+
+Normalisation lives in `tools.ts` at the provider boundary, not in the loop, so swapping
+models does not move the workaround around. This is the concrete argument for D3's
+provider-agnostic client: the abstraction earned its keep within an hour of first use.

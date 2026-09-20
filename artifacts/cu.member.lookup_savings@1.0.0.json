@@ -1,0 +1,520 @@
+{
+  "schemaVersion": "1.0.0",
+  "id": "cu.member.lookup_savings",
+  "version": "1.0.0",
+  "title": "Look up a member's savings balance",
+  "description": "Signs in to the teller console, searches for a member by ID, opens the record and returns the savings balance and member name. Read-only.",
+  "status": "draft",
+  "surface": {
+    "kind": "web",
+    "entryPoint": "http://127.0.0.1:8080/t/firstcu",
+    "appProfile": {
+      "vendorApp": "corelink-teller",
+      "versionRange": "*"
+    }
+  },
+  "tenant": "base",
+  "inputs": [
+    {
+      "name": "memberId",
+      "type": "string",
+      "required": true,
+      "description": "Six-digit member number to look up.",
+      "sensitivity": "pii",
+      "pattern": "^\\d{6}$",
+      "example": "100001"
+    }
+  ],
+  "outputs": [
+    {
+      "name": "savings_balance",
+      "type": "number",
+      "description": "Read savings balance",
+      "sensitivity": "internal",
+      "source": {
+        "describedAs": "the savings_balance value",
+        "framePath": [
+          {
+            "name": "mainFrame",
+            "urlPattern": "/t/firstcu/frame/member",
+            "index": 1
+          }
+        ],
+        "strategies": [
+          {
+            "strategy": {
+              "kind": "role_name",
+              "role": "LayoutTableCell",
+              "name": "$8,214.55",
+              "nameMatch": "normalized",
+              "aliases": []
+            },
+            "confidence": 0.9,
+            "rationale": "control has a real accessible name"
+          },
+          {
+            "strategy": {
+              "kind": "label_proximity",
+              "labelText": "Savings Balance:",
+              "labelMatch": "normalized",
+              "relation": "right_of",
+              "controlRole": "LayoutTableCell"
+            },
+            "confidence": 0.75,
+            "rationale": "secondary: the right_of label reads \"Savings Balance:\""
+          },
+          {
+            "strategy": {
+              "kind": "nth_of_role",
+              "role": "LayoutTableCell",
+              "index": 0
+            },
+            "confidence": 0.25,
+            "rationale": "positional last resort; replay logs loudly when it reaches this"
+          }
+        ],
+        "boundingBoxHint": {
+          "x": 136.0625,
+          "y": 159,
+          "width": 79.359375,
+          "height": 22
+        },
+        "ambiguityPolicy": "fail"
+      },
+      "transform": [
+        {
+          "op": "trim"
+        },
+        {
+          "op": "strip",
+          "chars": "$,"
+        },
+        {
+          "op": "to_number"
+        }
+      ]
+    },
+    {
+      "name": "member_name",
+      "type": "string",
+      "description": "Read member name",
+      "sensitivity": "pii",
+      "source": {
+        "describedAs": "the member_name value",
+        "framePath": [
+          {
+            "name": "mainFrame",
+            "urlPattern": "/t/firstcu/frame/member",
+            "index": 1
+          }
+        ],
+        "strategies": [
+          {
+            "strategy": {
+              "kind": "role_name",
+              "role": "LayoutTableCell",
+              "name": "Alina Marsh",
+              "nameMatch": "normalized",
+              "aliases": []
+            },
+            "confidence": 0.9,
+            "rationale": "control has a real accessible name"
+          },
+          {
+            "strategy": {
+              "kind": "label_proximity",
+              "labelText": "Name:",
+              "labelMatch": "normalized",
+              "relation": "right_of",
+              "controlRole": "LayoutTableCell"
+            },
+            "confidence": 0.75,
+            "rationale": "secondary: the right_of label reads \"Name:\""
+          },
+          {
+            "strategy": {
+              "kind": "nth_of_role",
+              "role": "LayoutTableCell",
+              "index": 0
+            },
+            "confidence": 0.25,
+            "rationale": "positional last resort; replay logs loudly when it reaches this"
+          }
+        ],
+        "boundingBoxHint": {
+          "x": 136.0625,
+          "y": 93,
+          "width": 79.359375,
+          "height": 22
+        },
+        "ambiguityPolicy": "fail"
+      },
+      "transform": [
+        {
+          "op": "trim"
+        }
+      ]
+    }
+  ],
+  "steps": [
+    {
+      "id": "s1_type",
+      "intent": "Enter username",
+      "action": {
+        "type": "type",
+        "target": {
+          "describedAs": "Enter username",
+          "framePath": [
+            {
+              "name": "mainFrame",
+              "urlPattern": "/t/firstcu/frame/login",
+              "index": 1
+            }
+          ],
+          "strategies": [
+            {
+              "strategy": {
+                "kind": "label_proximity",
+                "labelText": "User ID:",
+                "labelMatch": "normalized",
+                "relation": "right_of",
+                "controlRole": "textbox"
+              },
+              "confidence": 0.9,
+              "rationale": "control has no accessible name; its visible label is the right_of text \"User ID:\""
+            },
+            {
+              "strategy": {
+                "kind": "nth_of_role",
+                "role": "textbox",
+                "index": 0
+              },
+              "confidence": 0.25,
+              "rationale": "positional last resort; replay logs loudly when it reaches this"
+            }
+          ],
+          "boundingBoxHint": {
+            "x": 100.03125,
+            "y": 75,
+            "width": 181,
+            "height": 21
+          },
+          "ambiguityPolicy": "fail"
+        },
+        "value": "{{secret:corelink.username}}",
+        "clearFirst": true
+      },
+      "riskClass": "safe",
+      "outcomes": []
+    },
+    {
+      "id": "s2_type",
+      "intent": "Enter password",
+      "action": {
+        "type": "type",
+        "target": {
+          "describedAs": "Enter password",
+          "framePath": [
+            {
+              "name": "mainFrame",
+              "urlPattern": "/t/firstcu/frame/login",
+              "index": 1
+            }
+          ],
+          "strategies": [
+            {
+              "strategy": {
+                "kind": "label_proximity",
+                "labelText": "Password:",
+                "labelMatch": "normalized",
+                "relation": "right_of",
+                "controlRole": "textbox"
+              },
+              "confidence": 0.9,
+              "rationale": "control has no accessible name; its visible label is the right_of text \"Password:\""
+            },
+            {
+              "strategy": {
+                "kind": "nth_of_role",
+                "role": "textbox",
+                "index": 0
+              },
+              "confidence": 0.25,
+              "rationale": "positional last resort; replay logs loudly when it reaches this"
+            }
+          ],
+          "boundingBoxHint": {
+            "x": 100.03125,
+            "y": 104,
+            "width": 181,
+            "height": 21
+          },
+          "ambiguityPolicy": "fail"
+        },
+        "value": "{{secret:corelink.password}}",
+        "clearFirst": true
+      },
+      "riskClass": "safe",
+      "outcomes": []
+    },
+    {
+      "id": "s3_click",
+      "intent": "Click Sign In",
+      "action": {
+        "type": "click",
+        "target": {
+          "describedAs": "Click Sign In",
+          "framePath": [
+            {
+              "name": "mainFrame",
+              "urlPattern": "/t/firstcu/frame/login",
+              "index": 1
+            }
+          ],
+          "strategies": [
+            {
+              "strategy": {
+                "kind": "role_name",
+                "role": "button",
+                "name": "Sign In",
+                "nameMatch": "normalized",
+                "aliases": []
+              },
+              "confidence": 0.9,
+              "rationale": "control has a real accessible name"
+            },
+            {
+              "strategy": {
+                "kind": "label_proximity",
+                "labelText": "Sign In",
+                "labelMatch": "normalized",
+                "relation": "after",
+                "controlRole": "button"
+              },
+              "confidence": 0.75,
+              "rationale": "secondary: the adjacent label reads \"Sign In\""
+            },
+            {
+              "strategy": {
+                "kind": "nth_of_role",
+                "role": "button",
+                "index": 0
+              },
+              "confidence": 0.25,
+              "rationale": "positional last resort; replay logs loudly when it reaches this"
+            }
+          ],
+          "boundingBoxHint": {
+            "x": 100.03125,
+            "y": 133,
+            "width": 59.015625,
+            "height": 25
+          },
+          "ambiguityPolicy": "fail"
+        }
+      },
+      "riskClass": "safe",
+      "outcomes": []
+    },
+    {
+      "id": "s4_press",
+      "intent": "Attempt to submit login",
+      "action": {
+        "type": "press",
+        "key": "Enter"
+      },
+      "riskClass": "safe",
+      "checkpoint": {
+        "all": [
+          {
+            "kind": "text_present",
+            "text": "Member Search",
+            "match": "normalized"
+          },
+          {
+            "kind": "url_matches",
+            "pattern": "/t/firstcu/frame/search"
+          }
+        ],
+        "timeoutMs": 10000,
+        "describedAs": "the screen reached the state expected after: Attempt to submit login"
+      },
+      "outcomes": []
+    },
+    {
+      "id": "s5_type",
+      "intent": "Enter member ID",
+      "action": {
+        "type": "type",
+        "target": {
+          "describedAs": "Enter member ID",
+          "framePath": [
+            {
+              "name": "mainFrame",
+              "urlPattern": "/t/firstcu/frame/search",
+              "index": 1
+            }
+          ],
+          "strategies": [
+            {
+              "strategy": {
+                "kind": "label_proximity",
+                "labelText": "Member ID:",
+                "labelMatch": "normalized",
+                "relation": "right_of",
+                "controlRole": "textbox"
+              },
+              "confidence": 0.9,
+              "rationale": "control has no accessible name; its visible label is the right_of text \"Member ID:\""
+            },
+            {
+              "strategy": {
+                "kind": "nth_of_role",
+                "role": "textbox",
+                "index": 0
+              },
+              "confidence": 0.25,
+              "rationale": "positional last resort; replay logs loudly when it reaches this"
+            }
+          ],
+          "boundingBoxHint": {
+            "x": 106.6875,
+            "y": 75,
+            "width": 181,
+            "height": 21
+          },
+          "ambiguityPolicy": "fail"
+        },
+        "value": "{{memberId}}",
+        "clearFirst": true
+      },
+      "riskClass": "safe",
+      "outcomes": []
+    },
+    {
+      "id": "s6_click",
+      "intent": "Click Search",
+      "action": {
+        "type": "click",
+        "target": {
+          "describedAs": "Click Search",
+          "framePath": [
+            {
+              "name": "mainFrame",
+              "urlPattern": "/t/firstcu/frame/search",
+              "index": 1
+            }
+          ],
+          "strategies": [
+            {
+              "strategy": {
+                "kind": "role_name",
+                "role": "button",
+                "name": "Search",
+                "nameMatch": "normalized",
+                "aliases": []
+              },
+              "confidence": 0.9,
+              "rationale": "control has a real accessible name"
+            },
+            {
+              "strategy": {
+                "kind": "label_proximity",
+                "labelText": "Search",
+                "labelMatch": "normalized",
+                "relation": "after",
+                "controlRole": "button"
+              },
+              "confidence": 0.75,
+              "rationale": "secondary: the adjacent label reads \"Search\""
+            },
+            {
+              "strategy": {
+                "kind": "nth_of_role",
+                "role": "button",
+                "index": 0
+              },
+              "confidence": 0.25,
+              "rationale": "positional last resort; replay logs loudly when it reaches this"
+            }
+          ],
+          "boundingBoxHint": {
+            "x": 106.6875,
+            "y": 104,
+            "width": 56.65625,
+            "height": 25
+          },
+          "ambiguityPolicy": "fail"
+        }
+      },
+      "riskClass": "safe",
+      "outcomes": []
+    },
+    {
+      "id": "s7_press",
+      "intent": "Attempt to submit search",
+      "action": {
+        "type": "press",
+        "key": "Enter"
+      },
+      "riskClass": "safe",
+      "checkpoint": {
+        "all": [
+          {
+            "kind": "text_present",
+            "text": "Member Detail",
+            "match": "normalized"
+          },
+          {
+            "kind": "url_matches",
+            "pattern": "/t/firstcu/frame/member"
+          }
+        ],
+        "timeoutMs": 10000,
+        "describedAs": "the screen reached the state expected after: Attempt to submit search"
+      },
+      "outcomes": []
+    }
+  ],
+  "successCondition": {
+    "all": [
+      {
+        "kind": "text_present",
+        "text": "Member Detail",
+        "match": "normalized"
+      },
+      {
+        "kind": "url_matches",
+        "pattern": "/t/firstcu/frame/member"
+      }
+    ],
+    "timeoutMs": 10000,
+    "describedAs": "the screen reached the state expected after: achieve the goal: Sign in to the teller console, look up the member whose ID is {{memberId}}, open their record, and read two values from it: their savings balance and their name."
+  },
+  "outcomes": [],
+  "policy": {
+    "allowedOrigins": [
+      "http://127.0.0.1:8080"
+    ],
+    "allowedActions": [
+      "navigate",
+      "click",
+      "type",
+      "select",
+      "press",
+      "read",
+      "wait_for"
+    ],
+    "confirmAtOrAbove": "irreversible"
+  },
+  "provenance": {
+    "discoveredBy": {
+      "provider": "nvidia-nim",
+      "model": "openai/gpt-oss-20b"
+    },
+    "runId": "discovery-2026-09-20T18-21-01-q3uyw",
+    "createdAt": "2026-09-20T18:21:16.821Z",
+    "transcriptSha256": "de92d561a6e40c83a9938d3ad12fe9c8e19ad971c52a4c1428c904fc794ad74e",
+    "humanAssisted": false
+  }
+}

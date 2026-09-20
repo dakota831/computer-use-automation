@@ -1,0 +1,31 @@
+{"ts":"2026-09-20T18:21:34.248Z","runId":"replay-2026-09-20T18-21-34-bejs7","seq":1,"kind":"run_started","capabilityId":"cu.member.lookup_savings","version":"1.0.0","status":"draft","mode":"replay_attended","tenant":"base","inputKeys":["memberId"]}
+{"ts":"2026-09-20T18:21:35.033Z","runId":"replay-2026-09-20T18-21-34-bejs7","seq":2,"kind":"step_started","stepId":"s1_type","intent":"Enter username","riskClass":"safe","attempt":1}
+{"ts":"2026-09-20T18:21:35.033Z","runId":"replay-2026-09-20T18-21-34-bejs7","seq":3,"kind":"policy_verdict","stepId":"s1_type","decision":"allow"}
+{"ts":"2026-09-20T18:21:35.073Z","runId":"replay-2026-09-20T18-21-34-bejs7","seq":4,"kind":"resolution","stepId":"s1_type","target":"Enter username","ok":true,"ref":"ref_12","role":"textbox","label":"User ID:","strategyIndex":0,"strategyKind":"label_proximity","confidence":0.9}
+{"ts":"2026-09-20T18:21:35.073Z","runId":"replay-2026-09-20T18-21-34-bejs7","seq":5,"kind":"action","stepId":"s1_type","type":"type","ref":"ref_12","label":"User ID:","value":"[secret]"}
+{"ts":"2026-09-20T18:21:35.480Z","runId":"replay-2026-09-20T18-21-34-bejs7","seq":6,"kind":"step_started","stepId":"s2_type","intent":"Enter password","riskClass":"safe","attempt":1}
+{"ts":"2026-09-20T18:21:35.480Z","runId":"replay-2026-09-20T18-21-34-bejs7","seq":7,"kind":"policy_verdict","stepId":"s2_type","decision":"allow"}
+{"ts":"2026-09-20T18:21:35.526Z","runId":"replay-2026-09-20T18-21-34-bejs7","seq":8,"kind":"resolution","stepId":"s2_type","target":"Enter password","ok":true,"ref":"ref_13","role":"textbox","label":"Password:","strategyIndex":0,"strategyKind":"label_proximity","confidence":0.9}
+{"ts":"2026-09-20T18:21:35.526Z","runId":"replay-2026-09-20T18-21-34-bejs7","seq":9,"kind":"action","stepId":"s2_type","type":"type","ref":"ref_13","label":"Password:","value":"[secret]"}
+{"ts":"2026-09-20T18:21:35.924Z","runId":"replay-2026-09-20T18-21-34-bejs7","seq":10,"kind":"step_started","stepId":"s3_click","intent":"Click Sign In","riskClass":"safe","attempt":1}
+{"ts":"2026-09-20T18:21:35.924Z","runId":"replay-2026-09-20T18-21-34-bejs7","seq":11,"kind":"policy_verdict","stepId":"s3_click","decision":"allow"}
+{"ts":"2026-09-20T18:21:35.963Z","runId":"replay-2026-09-20T18-21-34-bejs7","seq":12,"kind":"resolution","stepId":"s3_click","target":"Click Sign In","ok":true,"ref":"ref_14","role":"button","label":"Sign In","strategyIndex":0,"strategyKind":"role_name","confidence":0.9}
+{"ts":"2026-09-20T18:21:35.963Z","runId":"replay-2026-09-20T18-21-34-bejs7","seq":13,"kind":"action","stepId":"s3_click","type":"click","ref":"ref_14","label":"Sign In"}
+{"ts":"2026-09-20T18:21:36.368Z","runId":"replay-2026-09-20T18-21-34-bejs7","seq":14,"kind":"step_started","stepId":"s4_press","intent":"Attempt to submit login","riskClass":"safe","attempt":1}
+{"ts":"2026-09-20T18:21:36.368Z","runId":"replay-2026-09-20T18-21-34-bejs7","seq":15,"kind":"policy_verdict","stepId":"s4_press","decision":"allow"}
+{"ts":"2026-09-20T18:21:36.399Z","runId":"replay-2026-09-20T18-21-34-bejs7","seq":16,"kind":"action","stepId":"s4_press","type":"press","key":"Enter"}
+{"ts":"2026-09-20T18:21:36.431Z","runId":"replay-2026-09-20T18-21-34-bejs7","seq":17,"kind":"checkpoint","stepId":"s4_press","ok":true,"polls":1,"describedAs":"the screen reached the state expected after: Attempt to submit login"}
+{"ts":"2026-09-20T18:21:36.432Z","runId":"replay-2026-09-20T18-21-34-bejs7","seq":18,"kind":"step_started","stepId":"s5_type","intent":"Enter member ID","riskClass":"safe","attempt":1}
+{"ts":"2026-09-20T18:21:36.432Z","runId":"replay-2026-09-20T18-21-34-bejs7","seq":19,"kind":"policy_verdict","stepId":"s5_type","decision":"allow"}
+{"ts":"2026-09-20T18:21:36.462Z","runId":"replay-2026-09-20T18-21-34-bejs7","seq":20,"kind":"resolution","stepId":"s5_type","target":"Enter member ID","ok":true,"ref":"ref_10","role":"textbox","label":"Member ID:","strategyIndex":0,"strategyKind":"label_proximity","confidence":0.9}
+{"ts":"2026-09-20T18:21:36.462Z","runId":"replay-2026-09-20T18-21-34-bejs7","seq":21,"kind":"action","stepId":"s5_type","type":"type","ref":"ref_10","label":"Member ID:","value":"100003"}
+{"ts":"2026-09-20T18:21:36.849Z","runId":"replay-2026-09-20T18-21-34-bejs7","seq":22,"kind":"step_started","stepId":"s6_click","intent":"Click Search","riskClass":"safe","attempt":1}
+{"ts":"2026-09-20T18:21:36.849Z","runId":"replay-2026-09-20T18-21-34-bejs7","seq":23,"kind":"policy_verdict","stepId":"s6_click","decision":"allow"}
+{"ts":"2026-09-20T18:21:36.884Z","runId":"replay-2026-09-20T18-21-34-bejs7","seq":24,"kind":"resolution","stepId":"s6_click","target":"Click Search","ok":true,"ref":"ref_11","role":"button","label":"Search","strategyIndex":0,"strategyKind":"role_name","confidence":0.9}
+{"ts":"2026-09-20T18:21:36.884Z","runId":"replay-2026-09-20T18-21-34-bejs7","seq":25,"kind":"action","stepId":"s6_click","type":"click","ref":"ref_11","label":"Search"}
+{"ts":"2026-09-20T18:21:37.303Z","runId":"replay-2026-09-20T18-21-34-bejs7","seq":26,"kind":"step_started","stepId":"s7_press","intent":"Attempt to submit search","riskClass":"safe","attempt":1}
+{"ts":"2026-09-20T18:21:37.303Z","runId":"replay-2026-09-20T18-21-34-bejs7","seq":27,"kind":"policy_verdict","stepId":"s7_press","decision":"allow"}
+{"ts":"2026-09-20T18:21:37.350Z","runId":"replay-2026-09-20T18-21-34-bejs7","seq":28,"kind":"action","stepId":"s7_press","type":"press","key":"Enter"}
+{"ts":"2026-09-20T18:21:37.399Z","runId":"replay-2026-09-20T18-21-34-bejs7","seq":29,"kind":"checkpoint","stepId":"s7_press","ok":true,"polls":1,"describedAs":"the screen reached the state expected after: Attempt to submit search"}
+{"ts":"2026-09-20T18:21:37.498Z","runId":"replay-2026-09-20T18-21-34-bejs7","seq":30,"kind":"run_finished","status":"success","outputs":{"savings_balance":61230,"member_name":"[pii:string:14]"}}
+{"ts":"2026-09-20T18:21:37.499Z","runId":"replay-2026-09-20T18-21-34-bejs7","seq":31,"kind":"run_finished","status":"success","durationMs":3251}

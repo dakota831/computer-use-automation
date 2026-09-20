@@ -1,0 +1,371 @@
+[
+  {
+    "ref": "ref_1",
+    "role": "table",
+    "name": "",
+    "label": "",
+    "labelSource": "accessible_name",
+    "framePath": [
+      {
+        "name": "mainFrame",
+        "urlPattern": "/t/firstcu/frame/member",
+        "index": 1
+      }
+    ]
+  },
+  {
+    "ref": "ref_2",
+    "role": "cell",
+    "name": "Member Detail",
+    "label": "Member Detail",
+    "labelSource": "accessible_name",
+    "readOnly": true,
+    "framePath": [
+      {
+        "name": "mainFrame",
+        "urlPattern": "/t/firstcu/frame/member",
+        "index": 1
+      }
+    ],
+    "bbox": {
+      "x": 11.5,
+      "y": 41.5,
+      "width": 639,
+      "height": 25
+    }
+  },
+  {
+    "ref": "ref_3",
+    "role": "cell",
+    "name": "Member ID: 100001 Name: Alina Marsh Status: active SSN: ***-**-4417 Savings Balance: $8,214.55 Checking Balance: $1,320.08 Open Sub-Account",
+    "label": "Member ID: 100001 Name: Alina Marsh Status: active SSN: ***-**-4417 Savings Balance: $8,214.55 Checking Balance: $1,320.08 Open Sub-Account",
+    "labelSource": "accessible_name",
+    "adjacentLabel": "Member Detail",
+    "adjacentRelation": "below",
+    "readOnly": true,
+    "framePath": [
+      {
+        "name": "mainFrame",
+        "urlPattern": "/t/firstcu/frame/member",
+        "index": 1
+      }
+    ],
+    "bbox": {
+      "x": 11.5,
+      "y": 66.5,
+      "width": 639,
+      "height": 169
+    }
+  },
+  {
+    "ref": "ref_4",
+    "role": "LayoutTable",
+    "name": "",
+    "label": "",
+    "labelSource": "accessible_name",
+    "framePath": [
+      {
+        "name": "mainFrame",
+        "urlPattern": "/t/firstcu/frame/member",
+        "index": 1
+      }
+    ]
+  },
+  {
+    "ref": "ref_5",
+    "role": "link",
+    "name": "Open Sub-Account",
+    "label": "Open Sub-Account",
+    "labelSource": "accessible_name",
+    "focusable": true,
+    "adjacentLabel": "Member Detail",
+    "adjacentRelation": "below",
+    "framePath": [
+      {
+        "name": "mainFrame",
+        "urlPattern": "/t/firstcu/frame/member",
+        "index": 1
+      }
+    ],
+    "bbox": {
+      "x": 20,
+      "y": 217,
+      "width": 101.40625,
+      "height": 14
+    }
+  },
+  {
+    "ref": "ref_6",
+    "role": "LayoutTableCell",
+    "name": "Member ID:",
+    "label": "Member ID:",
+    "labelSource": "accessible_name",
+    "readOnly": true,
+    "framePath": [
+      {
+        "name": "mainFrame",
+        "urlPattern": "/t/firstcu/frame/member",
+        "index": 1
+      }
+    ],
+    "bbox": {
+      "x": 20,
+      "y": 71,
+      "width": 116.0625,
+      "height": 22
+    }
+  },
+  {
+    "ref": "ref_7",
+    "role": "LayoutTableCell",
+    "name": "100001",
+    "label": "100001",
+    "labelSource": "accessible_name",
+    "adjacentLabel": "Member ID:",
+    "adjacentRelation": "right_of",
+    "readOnly": true,
+    "framePath": [
+      {
+        "name": "mainFrame",
+        "urlPattern": "/t/firstcu/frame/member",
+        "index": 1
+      }
+    ],
+    "bbox": {
+      "x": 136.0625,
+      "y": 71,
+      "width": 79.359375,
+      "height": 22
+    }
+  },
+  {
+    "ref": "ref_8",
+    "role": "LayoutTableCell",
+    "name": "Name:",
+    "label": "Name:",
+    "labelSource": "accessible_name",
+    "adjacentLabel": "Member ID:",
+    "adjacentRelation": "below",
+    "readOnly": true,
+    "framePath": [
+      {
+        "name": "mainFrame",
+        "urlPattern": "/t/firstcu/frame/member",
+        "index": 1
+      }
+    ],
+    "bbox": {
+      "x": 20,
+      "y": 93,
+      "width": 116.0625,
+      "height": 22
+    }
+  },
+  {
+    "ref": "ref_9",
+    "role": "LayoutTableCell",
+    "name": "Alina Marsh",
+    "label": "Alina Marsh",
+    "labelSource": "accessible_name",
+    "adjacentLabel": "Name:",
+    "adjacentRelation": "right_of",
+    "readOnly": true,
+    "framePath": [
+      {
+        "name": "mainFrame",
+        "urlPattern": "/t/firstcu/frame/member",
+        "index": 1
+      }
+    ],
+    "bbox": {
+      "x": 136.0625,
+      "y": 93,
+      "width": 79.359375,
+      "height": 22
+    }
+  },
+  {
+    "ref": "ref_10",
+    "role": "LayoutTableCell",
+    "name": "Status:",
+    "label": "Status:",
+    "labelSource": "accessible_name",
+    "adjacentLabel": "Name:",
+    "adjacentRelation": "below",
+    "readOnly": true,
+    "framePath": [
+      {
+        "name": "mainFrame",
+        "urlPattern": "/t/firstcu/frame/member",
+        "index": 1
+      }
+    ],
+    "bbox": {
+      "x": 20,
+      "y": 115,
+      "width": 116.0625,
+      "height": 22
+    }
+  },
+  {
+    "ref": "ref_11",
+    "role": "LayoutTableCell",
+    "name": "active",
+    "label": "active",
+    "labelSource": "accessible_name",
+    "adjacentLabel": "Status:",
+    "adjacentRelation": "right_of",
+    "readOnly": true,
+    "framePath": [
+      {
+        "name": "mainFrame",
+        "urlPattern": "/t/firstcu/frame/member",
+        "index": 1
+      }
+    ],
+    "bbox": {
+      "x": 136.0625,
+      "y": 115,
+      "width": 79.359375,
+      "height": 22
+    }
+  },
+  {
+    "ref": "ref_12",
+    "role": "LayoutTableCell",
+    "name": "SSN:",
+    "label": "SSN:",
+    "labelSource": "accessible_name",
+    "adjacentLabel": "Status:",
+    "adjacentRelation": "below",
+    "readOnly": true,
+    "framePath": [
+      {
+        "name": "mainFrame",
+        "urlPattern": "/t/firstcu/frame/member",
+        "index": 1
+      }
+    ],
+    "bbox": {
+      "x": 20,
+      "y": 137,
+      "width": 116.0625,
+      "height": 22
+    }
+  },
+  {
+    "ref": "ref_13",
+    "role": "LayoutTableCell",
+    "name": "***-**-4417",
+    "label": "***-**-4417",
+    "labelSource": "accessible_name",
+    "adjacentLabel": "SSN:",
+    "adjacentRelation": "right_of",
+    "readOnly": true,
+    "framePath": [
+      {
+        "name": "mainFrame",
+        "urlPattern": "/t/firstcu/frame/member",
+        "index": 1
+      }
+    ],
+    "bbox": {
+      "x": 136.0625,
+      "y": 137,
+      "width": 79.359375,
+      "height": 22
+    }
+  },
+  {
+    "ref": "ref_14",
+    "role": "LayoutTableCell",
+    "name": "Savings Balance:",
+    "label": "Savings Balance:",
+    "labelSource": "accessible_name",
+    "adjacentLabel": "SSN:",
+    "adjacentRelation": "below",
+    "readOnly": true,
+    "framePath": [
+      {
+        "name": "mainFrame",
+        "urlPattern": "/t/firstcu/frame/member",
+        "index": 1
+      }
+    ],
+    "bbox": {
+      "x": 20,
+      "y": 159,
+      "width": 116.0625,
+      "height": 22
+    }
+  },
+  {
+    "ref": "ref_15",
+    "role": "LayoutTableCell",
+    "name": "$8,214.55",
+    "label": "$8,214.55",
+    "labelSource": "accessible_name",
+    "adjacentLabel": "Savings Balance:",
+    "adjacentRelation": "right_of",
+    "readOnly": true,
+    "framePath": [
+      {
+        "name": "mainFrame",
+        "urlPattern": "/t/firstcu/frame/member",
+        "index": 1
+      }
+    ],
+    "bbox": {
+      "x": 136.0625,
+      "y": 159,
+      "width": 79.359375,
+      "height": 22
+    }
+  },
+  {
+    "ref": "ref_16",
+    "role": "LayoutTableCell",
+    "name": "Checking Balance:",
+    "label": "Checking Balance:",
+    "labelSource": "accessible_name",
+    "adjacentLabel": "Savings Balance:",
+    "adjacentRelation": "below",
+    "readOnly": true,
+    "framePath": [
+      {
+        "name": "mainFrame",
+        "urlPattern": "/t/firstcu/frame/member",
+        "index": 1
+      }
+    ],
+    "bbox": {
+      "x": 20,
+      "y": 181,
+      "width": 116.0625,
+      "height": 22
+    }
+  },
+  {
+    "ref": "ref_17",
+    "role": "LayoutTableCell",
+    "name": "$1,320.08",
+    "label": "$1,320.08",
+    "labelSource": "accessible_name",
+    "adjacentLabel": "Checking Balance:",
+    "adjacentRelation": "right_of",
+    "readOnly": true,
+    "framePath": [
+      {
+        "name": "mainFrame",
+        "urlPattern": "/t/firstcu/frame/member",
+        "index": 1
+      }
+    ],
+    "bbox": {
+      "x": 136.0625,
+      "y": 181,
+      "width": 79.359375,
+      "height": 22
+    }
+  }
+]
