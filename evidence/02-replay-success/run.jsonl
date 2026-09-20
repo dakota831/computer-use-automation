@@ -1,0 +1,25 @@
+{"ts":"2026-09-20T18:32:14.952Z","runId":"replay-2026-09-20T18-32-14-a1doz","seq":1,"kind":"run_started","capabilityId":"cu.member.read_savings_balance","version":"1.0.0","status":"approved","mode":"replay_unattended","tenant":"base","inputKeys":["memberId"]}
+{"ts":"2026-09-20T18:32:15.831Z","runId":"replay-2026-09-20T18-32-14-a1doz","seq":2,"kind":"step_started","stepId":"s1_user","intent":"Enter the teller user ID on the sign-in screen","riskClass":"safe","attempt":1}
+{"ts":"2026-09-20T18:32:15.832Z","runId":"replay-2026-09-20T18-32-14-a1doz","seq":3,"kind":"policy_verdict","stepId":"s1_user","decision":"allow"}
+{"ts":"2026-09-20T18:32:15.884Z","runId":"replay-2026-09-20T18-32-14-a1doz","seq":4,"kind":"resolution","stepId":"s1_user","target":"the User ID field","ok":true,"ref":"ref_12","role":"textbox","label":"User ID:","strategyIndex":0,"strategyKind":"label_proximity","confidence":0.9}
+{"ts":"2026-09-20T18:32:15.885Z","runId":"replay-2026-09-20T18-32-14-a1doz","seq":5,"kind":"action","stepId":"s1_user","type":"type","ref":"ref_12","label":"User ID:","value":"[secret]"}
+{"ts":"2026-09-20T18:32:16.309Z","runId":"replay-2026-09-20T18-32-14-a1doz","seq":6,"kind":"step_started","stepId":"s2_pass","intent":"Enter the teller password","riskClass":"safe","attempt":1}
+{"ts":"2026-09-20T18:32:16.309Z","runId":"replay-2026-09-20T18-32-14-a1doz","seq":7,"kind":"policy_verdict","stepId":"s2_pass","decision":"allow"}
+{"ts":"2026-09-20T18:32:16.350Z","runId":"replay-2026-09-20T18-32-14-a1doz","seq":8,"kind":"resolution","stepId":"s2_pass","target":"the Password field","ok":true,"ref":"ref_13","role":"textbox","label":"Password:","strategyIndex":0,"strategyKind":"label_proximity","confidence":0.9}
+{"ts":"2026-09-20T18:32:16.350Z","runId":"replay-2026-09-20T18-32-14-a1doz","seq":9,"kind":"action","stepId":"s2_pass","type":"type","ref":"ref_13","label":"Password:","value":"[secret]"}
+{"ts":"2026-09-20T18:32:16.751Z","runId":"replay-2026-09-20T18-32-14-a1doz","seq":10,"kind":"step_started","stepId":"s3_signin","intent":"Submit the sign-in form and land on member search","riskClass":"safe","attempt":1}
+{"ts":"2026-09-20T18:32:16.751Z","runId":"replay-2026-09-20T18-32-14-a1doz","seq":11,"kind":"policy_verdict","stepId":"s3_signin","decision":"allow"}
+{"ts":"2026-09-20T18:32:16.793Z","runId":"replay-2026-09-20T18-32-14-a1doz","seq":12,"kind":"resolution","stepId":"s3_signin","target":"the Sign In button","ok":true,"ref":"ref_14","role":"button","label":"Sign In","strategyIndex":0,"strategyKind":"role_name","confidence":0.95}
+{"ts":"2026-09-20T18:32:16.793Z","runId":"replay-2026-09-20T18-32-14-a1doz","seq":13,"kind":"action","stepId":"s3_signin","type":"click","ref":"ref_14","label":"Sign In"}
+{"ts":"2026-09-20T18:32:17.221Z","runId":"replay-2026-09-20T18-32-14-a1doz","seq":14,"kind":"checkpoint","stepId":"s3_signin","ok":true,"polls":2,"describedAs":"the member search screen is showing"}
+{"ts":"2026-09-20T18:32:17.221Z","runId":"replay-2026-09-20T18-32-14-a1doz","seq":15,"kind":"step_started","stepId":"s4_member_id","intent":"Type the member ID into the search field","riskClass":"safe","attempt":1}
+{"ts":"2026-09-20T18:32:17.221Z","runId":"replay-2026-09-20T18-32-14-a1doz","seq":16,"kind":"policy_verdict","stepId":"s4_member_id","decision":"allow"}
+{"ts":"2026-09-20T18:32:17.253Z","runId":"replay-2026-09-20T18-32-14-a1doz","seq":17,"kind":"resolution","stepId":"s4_member_id","target":"the Member ID field","ok":true,"ref":"ref_10","role":"textbox","label":"Member ID:","strategyIndex":0,"strategyKind":"label_proximity","confidence":0.9}
+{"ts":"2026-09-20T18:32:17.253Z","runId":"replay-2026-09-20T18-32-14-a1doz","seq":18,"kind":"action","stepId":"s4_member_id","type":"type","ref":"ref_10","label":"Member ID:","value":"100001"}
+{"ts":"2026-09-20T18:32:17.641Z","runId":"replay-2026-09-20T18-32-14-a1doz","seq":19,"kind":"step_started","stepId":"s5_search","intent":"Run the search and open the member record","riskClass":"safe","attempt":1}
+{"ts":"2026-09-20T18:32:17.641Z","runId":"replay-2026-09-20T18-32-14-a1doz","seq":20,"kind":"policy_verdict","stepId":"s5_search","decision":"allow"}
+{"ts":"2026-09-20T18:32:17.674Z","runId":"replay-2026-09-20T18-32-14-a1doz","seq":21,"kind":"resolution","stepId":"s5_search","target":"the Search button","ok":true,"ref":"ref_11","role":"button","label":"Search","strategyIndex":0,"strategyKind":"role_name","confidence":0.95}
+{"ts":"2026-09-20T18:32:17.674Z","runId":"replay-2026-09-20T18-32-14-a1doz","seq":22,"kind":"action","stepId":"s5_search","type":"click","ref":"ref_11","label":"Search"}
+{"ts":"2026-09-20T18:32:18.094Z","runId":"replay-2026-09-20T18-32-14-a1doz","seq":23,"kind":"checkpoint","stepId":"s5_search","ok":true,"polls":2,"describedAs":"the member detail record is showing"}
+{"ts":"2026-09-20T18:32:18.158Z","runId":"replay-2026-09-20T18-32-14-a1doz","seq":24,"kind":"run_finished","status":"success","outputs":{"savingsBalance":8214.55,"memberName":"[pii:string:11]"}}
+{"ts":"2026-09-20T18:32:18.158Z","runId":"replay-2026-09-20T18-32-14-a1doz","seq":25,"kind":"run_finished","status":"success","durationMs":3206}

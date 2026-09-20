@@ -17,7 +17,8 @@
     "web:dev": "vite",
     "web:build": "vite build",
     "format": "prettier --write .",
-    "format:check": "prettier --check ."
+    "format:check": "prettier --check .",
+    "evidence": "tsx scripts/generate-evidence.ts"
   },
   "dependencies": {
     "clsx": "^2.1.1",

@@ -1,0 +1,3 @@
+{"ts":"2026-09-20T18:32:30.416Z","runId":"replay-2026-09-20T18-32-30-15gi3","seq":1,"kind":"run_started","capabilityId":"cu.member.read_savings_balance","version":"1.0.0","status":"approved","mode":"replay_unattended","tenant":"base","inputKeys":["memberId"]}
+{"ts":"2026-09-20T18:32:30.416Z","runId":"replay-2026-09-20T18-32-30-15gi3","seq":2,"kind":"run_finished","status":"failed","failure":{"code":"INPUT_INVALID","message":"\"memberId\" does not match required pattern ^\\d{6}$","evidence":{},"retryable":false}}
+{"ts":"2026-09-20T18:32:30.417Z","runId":"replay-2026-09-20T18-32-30-15gi3","seq":3,"kind":"run_finished","status":"failed","failure":{"code":"INPUT_INVALID","message":"\"memberId\" does not match required pattern ^\\d{6}$","evidence":{},"retryable":false}}

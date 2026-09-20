@@ -3,8 +3,6 @@ dist-web/
 .env
 .env.*
 !.env.example
-evidence/**/*.jpeg
-evidence/**/*.png
 *.log
 node_modules/
 .playwright/
